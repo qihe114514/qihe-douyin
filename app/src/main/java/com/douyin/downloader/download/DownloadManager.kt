@@ -4,7 +4,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import com.douyin.downloader.model.DownloadItem
 import com.douyin.downloader.model.DownloadType
@@ -15,6 +14,7 @@ import okhttp3.Request
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 class DownloadManager(private val context: Context) {
@@ -26,7 +26,7 @@ class DownloadManager(private val context: Context) {
         .build()
 
     /**
-     * OkHttp 流式下载 -> 写入应用私有临时文件 -> 完成后拷贝到系统相册并返回路径。
+     * OkHttp 流式下载 -> 写入临时文件 -> 拷贝到系统相册。
      * 通过 Flow 每 500ms emit (进度 0..1, 速度字符串)；完成时 emit null。
      */
     fun downloadWithProgress(
@@ -40,7 +40,6 @@ class DownloadManager(private val context: Context) {
         val safeTitle = item.title.replace(Regex("[/\\\\:*?\"<>|]"), "_").take(80)
         val fileName = "${safeTitle}$extension"
 
-        // 临时目录：应用私有 cache
         val tempDir = File(context.cacheDir, "downloads")
         if (!tempDir.exists()) tempDir.mkdirs()
         val tempFile = File(tempDir, fileName)
@@ -56,24 +55,26 @@ class DownloadManager(private val context: Context) {
 
         val body = response.body ?: throw RuntimeException("空响应体")
         val contentLength = body.contentLength()
-        val source = body.source()
+        val inputStream: InputStream = body.byteStream()
 
         FileOutputStream(tempFile).use { fos ->
-            val sink = fos.sink().buffer()
+            val buffer = ByteArray(8192)
             var totalBytesRead = 0L
             var lastBytes = 0L
             var lastTime = System.currentTimeMillis()
 
-            while (!source.exhausted()) {
-                val read = source.read(sink.buffer, 8192)
-                if (read == -1L) break
+            while (true) {
+                val read = inputStream.read(buffer)
+                if (read == -1) break
+                fos.write(buffer, 0, read)
                 totalBytesRead += read
-                sink.emit()
 
                 val now = System.currentTimeMillis()
                 val elapsed = now - lastTime
                 if (elapsed >= 500) {
-                    val fraction = if (contentLength > 0) (totalBytesRead.toFloat() / contentLength).coerceIn(0f, 1f) else -1f
+                    val fraction = if (contentLength > 0) {
+                        (totalBytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
+                    } else -1f
                     val speedStr = if (elapsed > 0) {
                         val bytesDelta = totalBytesRead - lastBytes
                         val bytesPerSecond = (bytesDelta * 1000L / elapsed)
@@ -84,31 +85,19 @@ class DownloadManager(private val context: Context) {
                     emit(fraction to speedStr)
                 }
             }
-            // flush 最后的数据
-            sink.flush()
         }
 
         response.close()
 
-        // 最后一次进度 emit 100%
-        if (contentLength > 0) {
-            emit(1f to formatSpeed(contentLength / kotlin.math.max(1, ((System.currentTimeMillis() - lastTime) / 1000))))
+        // 完成后拷贝到相册并返回
+        withContext(Dispatchers.IO) {
+            moveToGallery(tempFile, fileName, item.type)
         }
 
-        // 拷贝到系统相册
-        val savedUri = withContext(Dispatchers.IO) {
-            moveToGallery(tempFile, fileName, item.type, savePath)
-        }
-
-        emit(null) // 完成
+        emit(null)
     }
 
-    private fun moveToGallery(
-        file: File,
-        fileName: String,
-        type: DownloadType,
-        savePath: String?
-    ): String? {
+    private fun moveToGallery(file: File, fileName: String, type: DownloadType): String? {
         return try {
             if (!file.exists() || file.length() == 0L) return null
 
@@ -127,21 +116,15 @@ class DownloadManager(private val context: Context) {
             val collection = if (type == DownloadType.IMAGE) MediaStore.Images.Media.EXTERNAL_CONTENT_URI
             else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
 
-            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                context.contentResolver.insert(collection, cv)
-            } else {
-                context.contentResolver.insert(collection, cv)
-            } ?: return null
-
+            val uri = context.contentResolver.insert(collection, cv) ?: return null
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 FileInputStream(file).use { fis ->
                     fis.copyTo(out, 8192)
                 }
             }
-
             file.delete()
             uri.toString()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             file.delete()
             null
         }
