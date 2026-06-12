@@ -2,9 +2,6 @@ package com.douyin.downloader.ui
 
 import android.app.Application
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.AudioManager
-import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -174,37 +171,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         triggerLightHaptic()
 
         viewModelScope.launch {
-            val savePath = if (_uiState.value.savePath.isNotBlank()) _uiState.value.savePath else null
-            val progressMap = _uiState.value.downloadProgress.toMutableMap()
-            val speedMap = _uiState.value.downloadSpeed.toMutableMap()
-
-            val result = downloadManager.downloadToGalleryWithProgress(
-                item,
-                savePath,
-                onProgress = { progress, speed ->
-                    progressMap[index] = progress
-                    speedMap[index] = speed
-                    _uiState.update {
-                        it.copy(downloadProgress = progressMap, downloadSpeed = speedMap)
+            try {
+                val savePath = if (_uiState.value.savePath.isNotBlank()) _uiState.value.savePath else null
+                downloadManager.downloadWithProgress(item, savePath).collect { pair ->
+                    if (pair == null) {
+                        // 下载完成
+                        val map = _uiState.value.downloadStatus.toMutableMap()
+                        map[index] = DownloadStatus.Success("")
+                        _uiState.update { it.copy(downloadStatus = map) }
+                    } else {
+                        val (progress, speed) = pair
+                        val progressMap = _uiState.value.downloadProgress.toMutableMap()
+                        val speedMap = _uiState.value.downloadSpeed.toMutableMap()
+                        progressMap[index] = progress
+                        speedMap[index] = speed
+                        _uiState.update {
+                            it.copy(downloadProgress = progressMap, downloadSpeed = speedMap)
+                        }
                     }
                 }
-            )
-
-            progressMap.remove(index)
-            speedMap.remove(index)
-
-            result.fold(
-                onSuccess = { path ->
-                    val map = _uiState.value.downloadStatus.toMutableMap()
-                    map[index] = DownloadStatus.Success(path)
-                    _uiState.update { it.copy(downloadStatus = map, downloadProgress = progressMap, downloadSpeed = speedMap) }
-                },
-                onFailure = { e ->
-                    val map = _uiState.value.downloadStatus.toMutableMap()
-                    map[index] = DownloadStatus.Error(e.message ?: "下载失败")
-                    _uiState.update { it.copy(downloadStatus = map, downloadProgress = progressMap, downloadSpeed = speedMap) }
-                }
-            )
+            } catch (e: Exception) {
+                val map = _uiState.value.downloadStatus.toMutableMap()
+                map[index] = DownloadStatus.Error(e.message ?: "下载失败")
+                _uiState.update { it.copy(downloadStatus = map) }
+            }
         }
     }
 
