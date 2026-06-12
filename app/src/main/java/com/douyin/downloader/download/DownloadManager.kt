@@ -28,88 +28,68 @@ class DownloadManager(private val context: Context) {
         .writeTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
     companion object {
         private const val CHANNEL_ID = "download_channel"
-        private const val NOTIFICATION_ID_BASE = 1000
     }
 
-    init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "视频下载",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "显示下载进度"
+    suspend fun downloadToGalleryWithProgress(
+        item: DownloadItem,
+        savePath: String?,
+        onProgress: (progress: Float, speed: String) -> Unit
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url(item.url)
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 16; Pixel) AppleWebKit/537.36")
+                .build()
+
+            val response = client.newCall(request).execute()
+
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(Exception("下载失败: HTTP ${response.code}"))
             }
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
 
-    suspend fun downloadToGallery(item: DownloadItem, savePath: String? = null): Result<String> =
-        withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url(item.url)
-                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 16; Pixel) AppleWebKit/537.36")
-                    .build()
+            val body = response.body ?: return@withContext Result.failure(Exception("响应体为空"))
 
-                val response = client.newCall(request).execute()
+            val extension = when (item.type) {
+                DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> ".mp4"
+                DownloadType.IMAGE -> ".jpg"
+            }
 
-                if (!response.isSuccessful) {
-                    return@withContext Result.failure(Exception("下载失败: HTTP ${response.code}"))
-                }
+            val safeTitle = item.title.replace(Regex("[/\\\\:*?\"<>|]"), "_").take(80)
+            val fileName = "${safeTitle}$extension"
 
-                val body = response.body ?: return@withContext Result.failure(Exception("响应体为空"))
+            // 读取数据
+            val bytes = body.bytes()
+            onProgress(1f, formatFileSize(bytes.size.toLong()))
 
-                val extension = when (item.type) {
-                    DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> ".mp4"
-                    DownloadType.IMAGE -> ".jpg"
-                }
-
-                val safeTitle = item.title.replace(Regex("[/\\\\:*?\"<>|]"), "_").take(80)
-                val fileName = "${safeTitle}$extension"
-
-                // 使用MediaStore API（Android 10+标准）
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    saveToMediaStore(body.bytes(), fileName, item.type, item.url)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                saveToMediaStore(bytes, fileName, item.type)
+            } else {
+                val dir = if (!savePath.isNullOrEmpty() && File(savePath).exists()) {
+                    File(savePath)
                 } else {
-                    // 旧版系统使用自定义路径或默认路径
-                    val dir = if (!savePath.isNullOrEmpty() && File(savePath).exists()) {
-                        File(savePath)
-                    } else {
-                        val defaultDir = File(
-                            context.getExternalFilesDir(null),
-                            "DouyinDownloads"
-                        )
-                        defaultDir.mkdirs()
-                        defaultDir
-                    }
-                    val file = File(dir, fileName)
-                    FileOutputStream(file).use { fos ->
-                        fos.write(body.bytes())
-                        fos.flush()
-                    }
-                    // 通知媒体扫描
-                    MediaScannerConnection.scanFile(
-                        context,
-                        arrayOf(file.absolutePath),
-                        null
-                    ) { _, _ -> }
-                    Result.success(file.absolutePath)
+                    val defaultDir = File(context.getExternalFilesDir(null), "DouyinDownloads")
+                    defaultDir.mkdirs()
+                    defaultDir
                 }
-            } catch (e: Exception) {
-                Result.failure(e)
+                val file = File(dir, fileName)
+                FileOutputStream(file).use { fos ->
+                    fos.write(bytes)
+                    fos.flush()
+                }
+                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null) { _, _ -> }
+                Result.success(file.absolutePath)
             }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+    }
 
     private fun saveToMediaStore(
         data: ByteArray,
         fileName: String,
-        type: DownloadType,
-        sourceUrl: String
+        type: DownloadType
     ): Result<String> {
         return try {
             val mimeType = when (type) {
@@ -154,44 +134,12 @@ class DownloadManager(private val context: Context) {
         }
     }
 
-    private fun createNotificationBuilder(id: Int): NotificationCompat.Builder {
-        return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setOngoing(true)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-    }
-
-    fun showProgressNotification(id: Int, title: String) {
-        val notification = createNotificationBuilder(id)
-            .setContentTitle("正在下载")
-            .setContentText(title)
-            .setProgress(0, 0, true)
-            .build()
-        notificationManager.notify(NOTIFICATION_ID_BASE + id, notification)
-    }
-
-    fun showCompleteNotification(id: Int, title: String) {
-        val notification = createNotificationBuilder(id)
-            .setContentTitle("下载完成")
-            .setContentText(title)
-            .setOngoing(false)
-            .setProgress(0, 0, false)
-            .setContentIntent(null)
-            .build()
-        notificationManager.notify(NOTIFICATION_ID_BASE + id, notification)
-    }
-
-    fun showErrorNotification(id: Int, error: String) {
-        val notification = createNotificationBuilder(id)
-            .setContentTitle("下载失败")
-            .setContentText(error)
-            .setOngoing(false)
-            .setProgress(0, 0, false)
-            .build()
-        notificationManager.notify(NOTIFICATION_ID_BASE + id, notification)
-    }
-
-    fun cancelNotification(id: Int) {
-        notificationManager.cancel(NOTIFICATION_ID_BASE + id)
+    private fun formatFileSize(bytes: Long): String {
+        return when {
+            bytes < 1024 -> "$bytes B"
+            bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+            bytes < 1024 * 1024 * 1024 -> "${"%.1f".format(bytes / (1024.0 * 1024))} MB"
+            else -> "${"%.2f".format(bytes / (1024.0 * 1024 * 1024))} GB"
+        }
     }
 }

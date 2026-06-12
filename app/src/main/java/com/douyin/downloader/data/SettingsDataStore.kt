@@ -5,8 +5,11 @@ import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.douyin.downloader.ui.HistoryEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -18,6 +21,7 @@ class SettingsDataStore(private val context: Context) {
         val BG_WALLPAPER_TYPE = stringPreferencesKey("bg_wallpaper_type")
         val BG_BLUR_RADIUS = floatPreferencesKey("bg_blur_radius")
         val BG_OPACITY = floatPreferencesKey("bg_opacity")
+        val PARSE_HISTORY = stringPreferencesKey("parse_history")
     }
 
     val savePath: Flow<String> = context.dataStore.data.map { prefs ->
@@ -38,6 +42,15 @@ class SettingsDataStore(private val context: Context) {
 
     val bgOpacity: Flow<Float> = context.dataStore.data.map { prefs ->
         prefs[BG_OPACITY] ?: 0.5f
+    }
+
+    val parseHistory: Flow<List<HistoryEntry>> = context.dataStore.data.map { prefs ->
+        val json = prefs[PARSE_HISTORY] ?: "[]"
+        try {
+            Json.decodeFromString<List<HistoryEntry>>(json)
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun setSavePath(path: String) {
@@ -62,6 +75,31 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setBgOpacity(opacity: Float) {
         context.dataStore.edit { prefs ->
             prefs[BG_OPACITY] = opacity.coerceIn(0f, 1f)
+        }
+    }
+
+    suspend fun addParseHistory(entry: HistoryEntry) {
+        context.dataStore.edit { prefs ->
+            val json = prefs[PARSE_HISTORY] ?: "[]"
+            val list = try {
+                Json.decodeFromString<MutableList<HistoryEntry>>(json)
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+            // 去重：相同URL只保留最新
+            list.removeAll { it.url == entry.url }
+            list.add(0, entry)
+            // 最多保留50条
+            if (list.size > 50) {
+                list.removeAt(list.lastIndex)
+            }
+            prefs[PARSE_HISTORY] = Json.encodeToString(list)
+        }
+    }
+
+    suspend fun clearParseHistory() {
+        context.dataStore.edit { prefs ->
+            prefs[PARSE_HISTORY] = "[]"
         }
     }
 }

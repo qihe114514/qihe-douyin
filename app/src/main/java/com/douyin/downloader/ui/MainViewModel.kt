@@ -1,15 +1,32 @@
 package com.douyin.downloader.ui
 
 import android.app.Application
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.douyin.downloader.api.DouyinApiClient
 import com.douyin.downloader.data.SettingsDataStore
 import com.douyin.downloader.download.DownloadManager
 import com.douyin.downloader.model.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+data class HistoryEntry(
+    val url: String,
+    val title: String,
+    val type: String,
+    val timestamp: Long
+)
 
 data class MainUiState(
     val shareUrl: String = "",
@@ -18,13 +35,16 @@ data class MainUiState(
     val parsedData: VideoData? = null,
     val downloadItems: List<DownloadItem> = emptyList(),
     val downloadStatus: Map<Int, DownloadStatus> = emptyMap(),
+    val downloadProgress: Map<Int, Float> = emptyMap(),
+    val downloadSpeed: Map<Int, String> = emptyMap(),
     // 设置
     val savePath: String = "",
     val bgWallpaperUri: String = "",
     val bgWallpaperType: String = "none",
     val bgBlurRadius: Float = 0f,
     val bgOpacity: Float = 0.5f,
-    val showSettings: Boolean = false
+    // 历史记录
+    val parseHistory: List<HistoryEntry> = emptyList()
 )
 
 sealed class DownloadStatus {
@@ -39,12 +59,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val apiClient = DouyinApiClient()
     val downloadManager = DownloadManager(application)
     private val settingsStore = SettingsDataStore(application)
+    private val appContext = application
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
-        // 加载设置
         viewModelScope.launch {
             settingsStore.savePath.collect { path ->
                 _uiState.update { it.copy(savePath = path) }
@@ -70,14 +90,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { it.copy(bgOpacity = opacity) }
             }
         }
+        viewModelScope.launch {
+            settingsStore.parseHistory.collect { history ->
+                _uiState.update { it.copy(parseHistory = history) }
+            }
+        }
     }
 
     fun updateShareUrl(url: String) {
         _uiState.update { it.copy(shareUrl = url, error = null) }
-    }
-
-    fun toggleSettings(show: Boolean) {
-        _uiState.update { it.copy(showSettings = show) }
     }
 
     fun parseVideo() {
@@ -88,7 +109,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, parsedData = null, downloadItems = emptyList()) }
+            _uiState.update { it.copy(isLoading = true, error = null, parsedData = null, downloadItems = emptyList(), downloadStatus = emptyMap(), downloadProgress = emptyMap(), downloadSpeed = emptyMap()) }
 
             val result = apiClient.parseVideo(url)
 
@@ -97,6 +118,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val data = response.data
                     if (data != null) {
                         val items = data.getAllVideoUrls()
+                        // 记录解析历史
+                        settingsStore.addParseHistory(
+                            HistoryEntry(
+                                url = url,
+                                title = data.title.ifEmpty { "未知视频" },
+                                type = data.type,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        )
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -128,33 +158,64 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun downloadItem(index: Int, item: DownloadItem) {
         val statusMap = _uiState.value.downloadStatus.toMutableMap()
-        if (statusMap[index] is DownloadStatus.Downloading) {
-            return // 已经在下载中
-        }
+        if (statusMap[index] is DownloadStatus.Downloading) return
 
         statusMap[index] = DownloadStatus.Downloading
         _uiState.update { it.copy(downloadStatus = statusMap) }
 
+        // 震动反馈
+        triggerLightHaptic()
+
         viewModelScope.launch {
             val savePath = if (_uiState.value.savePath.isNotBlank()) _uiState.value.savePath else null
-            val result = downloadManager.downloadToGallery(item, savePath)
+            val progressMap = _uiState.value.downloadProgress.toMutableMap()
+            val speedMap = _uiState.value.downloadSpeed.toMutableMap()
+
+            val result = downloadManager.downloadToGalleryWithProgress(
+                item,
+                savePath,
+                onProgress = { progress, speed ->
+                    progressMap[index] = progress
+                    speedMap[index] = speed
+                    _uiState.update {
+                        it.copy(downloadProgress = progressMap, downloadSpeed = speedMap)
+                    }
+                }
+            )
+
+            progressMap.remove(index)
+            speedMap.remove(index)
 
             result.fold(
                 onSuccess = { path ->
                     val map = _uiState.value.downloadStatus.toMutableMap()
                     map[index] = DownloadStatus.Success(path)
-                    _uiState.update { it.copy(downloadStatus = map) }
+                    _uiState.update { it.copy(downloadStatus = map, downloadProgress = progressMap, downloadSpeed = speedMap) }
                 },
                 onFailure = { e ->
                     val map = _uiState.value.downloadStatus.toMutableMap()
                     map[index] = DownloadStatus.Error(e.message ?: "下载失败")
-                    _uiState.update { it.copy(downloadStatus = map) }
+                    _uiState.update { it.copy(downloadStatus = map, downloadProgress = progressMap, downloadSpeed = speedMap) }
                 }
             )
         }
     }
 
-    // 设置操作
+    private fun triggerLightHaptic() {
+        try {
+            val ctx = appContext
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val manager = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                val vibrator = manager.defaultVibrator
+                vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+            }
+        } catch (_: Exception) {}
+    }
+
     fun setSavePath(uri: Uri) {
         viewModelScope.launch {
             settingsStore.setSavePath(uri.toString())
@@ -163,7 +224,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setBgWallpaper(uri: Uri, type: String) {
         viewModelScope.launch {
-            // 获取持久化权限
             val context = getApplication<Application>()
             context.contentResolver.takePersistableUriPermission(
                 uri,
@@ -198,6 +258,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } catch (_: Exception) {}
             }
             settingsStore.setBgWallpaper("", "none")
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            settingsStore.clearParseHistory()
         }
     }
 

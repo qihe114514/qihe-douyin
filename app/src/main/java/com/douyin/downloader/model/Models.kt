@@ -53,27 +53,35 @@ data class Music(
 )
 
 /**
- * 获取所有可下载的视频URL
+ * 获取所有可下载的URL（含分辨率/码率/帧率信息）
  */
 fun VideoData.getAllVideoUrls(): List<DownloadItem> {
     val items = mutableListOf<DownloadItem>()
+
+    val baseTitle = title.ifEmpty { "${author?.name ?: "视频"}_${System.currentTimeMillis()}" }
 
     when (type) {
         "video" -> {
             url?.let {
                 items.add(DownloadItem(
                     url = it,
-                    title = title.ifEmpty { "${author?.name ?: "视频"}_${System.currentTimeMillis()}" },
-                    type = DownloadType.VIDEO
+                    title = baseTitle,
+                    type = DownloadType.VIDEO,
+                    resolution = "原画",
+                    bitrate = null,
+                    fps = null,
+                    fileSize = null
                 ))
             }
             videoBackup.forEach { backup ->
-                val label = backup.label.ifEmpty { "" }
                 items.add(DownloadItem(
                     url = backup.url,
-                    title = title.ifEmpty { "${author?.name ?: "视频"}_${System.currentTimeMillis()}" } +
-                        if (label.isNotEmpty()) "_${label}" else "_备份",
-                    type = DownloadType.VIDEO
+                    title = "$baseTitle _ ${backup.label}",
+                    type = DownloadType.VIDEO,
+                    resolution = backup.label,
+                    bitrate = null,
+                    fps = null,
+                    fileSize = null
                 ))
             }
         }
@@ -81,8 +89,12 @@ fun VideoData.getAllVideoUrls(): List<DownloadItem> {
             images.forEachIndexed { index, imgUrl ->
                 items.add(DownloadItem(
                     url = imgUrl,
-                    title = "${title}_图${index + 1}",
-                    type = DownloadType.IMAGE
+                    title = "${baseTitle}_图${index + 1}",
+                    type = DownloadType.IMAGE,
+                    resolution = null,
+                    bitrate = null,
+                    fps = null,
+                    fileSize = null
                 ))
             }
         }
@@ -90,13 +102,21 @@ fun VideoData.getAllVideoUrls(): List<DownloadItem> {
             livePhoto.forEachIndexed { index, lp ->
                 items.add(DownloadItem(
                     url = lp.video,
-                    title = "${title}_实况${index + 1}",
-                    type = DownloadType.LIVE_PHOTO
+                    title = "${baseTitle}_实况${index + 1}",
+                    type = DownloadType.LIVE_PHOTO,
+                    resolution = null,
+                    bitrate = null,
+                    fps = null,
+                    fileSize = null
                 ))
                 items.add(DownloadItem(
                     url = lp.image,
-                    title = "${title}_实况${index + 1}_封面",
-                    type = DownloadType.IMAGE
+                    title = "${baseTitle}_实况${index + 1}_封面",
+                    type = DownloadType.IMAGE,
+                    resolution = null,
+                    bitrate = null,
+                    fps = null,
+                    fileSize = null
                 ))
             }
         }
@@ -108,7 +128,11 @@ fun VideoData.getAllVideoUrls(): List<DownloadItem> {
 data class DownloadItem(
     val url: String,
     val title: String,
-    val type: DownloadType
+    val type: DownloadType,
+    val resolution: String? = null,
+    val bitrate: Double? = null,
+    val fps: Int? = null,
+    val fileSize: String? = null
 )
 
 enum class DownloadType {
