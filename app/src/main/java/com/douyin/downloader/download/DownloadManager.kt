@@ -1,11 +1,8 @@
 package com.douyin.downloader.download
 
 import android.app.DownloadManager as SysDownloadManager
-import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
@@ -18,13 +15,20 @@ import kotlinx.coroutines.flow.*
 import java.io.File
 import java.io.FileInputStream
 
+private data class DownloadProgress(
+    val status: Int?,
+    val bytes: Long,
+    val total: Long,
+    val localUri: String?
+)
+
 class DownloadManager(private val context: Context) {
 
     private val sysDownloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as SysDownloadManager
 
     /**
      * 通过系统 DownloadManager 下载并拷贝到相册。
-     * 返回 Flow：每500ms 发出 (进度 0~1, 速度字符串)；完成后 emit null 并结束。
+     * 返回 Flow：每 500ms emit (进度 0..1, 速度字符串)；完成后 emit null 并结束。
      */
     fun downloadWithProgress(
         item: DownloadItem,
@@ -52,41 +56,37 @@ class DownloadManager(private val context: Context) {
         try {
             while (!finished) {
                 delay(500)
-                val (progress, speed, status, localUri) = withContext(Dispatchers.IO) {
+                val progress = withContext(Dispatchers.IO) {
                     queryProgress(downloadId)
                 }
 
-                if (status != null) {
-                    when (status) {
-                        SysDownloadManager.STATUS_SUCCESSFUL -> {
-                            finished = true
-                            // 拷贝到相册
-                            val savedUri = withContext(Dispatchers.IO) {
-                                moveToGallery(downloadId, localUri, fileName, item.type, savePath)
-                            }
-                            emit(null)  // 完成信号
-                            return@flow
+                when (progress.status) {
+                    SysDownloadManager.STATUS_SUCCESSFUL -> {
+                        finished = true
+                        // 拷贝到相册
+                        withContext(Dispatchers.IO) {
+                            moveToGallery(downloadId, progress.localUri, fileName, item.type, savePath)
                         }
-                        SysDownloadManager.STATUS_FAILED -> {
-                            finished = true
-                            sysDownloadManager.remove(downloadId)
-                            throw RuntimeException("系统下载失败")
-                        }
+                        emit(null)  // 完成信号
+                        return@flow
+                    }
+                    SysDownloadManager.STATUS_FAILED -> {
+                        finished = true
+                        sysDownloadManager.remove(downloadId)
+                        throw RuntimeException("系统下载失败")
                     }
                 }
 
-                if (!finished && progress.second > 0) {
-                    val currentBytes = progress.second.toLong()
-                    val total = progress.third.toLong()
-                    val fraction = if (total > 0) (currentBytes.toFloat() / total).coerceIn(0f, 1f) else -1f
+                if (!finished && progress.total > 0) {
+                    val fraction = (progress.bytes.toFloat() / progress.total).coerceIn(0f, 1f)
                     val now = System.currentTimeMillis()
                     val elapsed = now - lastTime
                     val speedStr = if (elapsed > 0) {
-                        val bytesDelta = currentBytes - lastBytes
+                        val bytesDelta = progress.bytes - lastBytes
                         val bytesPerSecond = (bytesDelta * 1000L / elapsed)
                         formatSpeed(bytesPerSecond)
                     } else "—"
-                    lastBytes = currentBytes
+                    lastBytes = progress.bytes
                     lastTime = now
                     emit(fraction to speedStr)
                 }
@@ -99,28 +99,31 @@ class DownloadManager(private val context: Context) {
         }
     }
 
-    private fun queryProgress(downloadId: Long): Triple<Int?, Long, Long> {
+    private fun queryProgress(downloadId: Long): DownloadProgress {
         val query = SysDownloadManager.Query().setFilterById(downloadId)
         var cursor: Cursor? = null
-        try {
+        return try {
             cursor = sysDownloadManager.query(query)
             if (cursor?.moveToFirst() == true) {
                 val statusCol = cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_STATUS)
                 val bytesCol = cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
                 val totalCol = cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                val status = cursor.getInt(statusCol)
-                val bytes = cursor.getLong(bytesCol)
-                val total = cursor.getLong(totalCol)
-                val localUri = cursor.getString(cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_LOCAL_URI))
-                return Triple(status, bytes, total)
+                val localUriCol = cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_LOCAL_URI)
+                DownloadProgress(
+                    status = cursor.getInt(statusCol),
+                    bytes = cursor.getLong(bytesCol),
+                    total = cursor.getLong(totalCol),
+                    localUri = cursor.getString(localUriCol)
+                )
+            } else {
+                DownloadProgress(null, 0L, 0L, null)
             }
         } finally {
             cursor?.close()
         }
-        return Triple(null, 0L, 0L)
     }
 
-    private suspend fun moveToGallery(
+    private fun moveToGallery(
         downloadId: Long,
         localUri: String?,
         fileName: String,
@@ -128,16 +131,7 @@ class DownloadManager(private val context: Context) {
         savePath: String?
     ): String? {
         try {
-            // 先查文件路径
-            val query = SysDownloadManager.Query().setFilterById(downloadId)
-            val cursor = sysDownloadManager.query(query)
-            var filePath: String? = null
-            if (cursor?.moveToFirst() == true) {
-                filePath = cursor.getString(cursor.getColumnIndexOrThrow(SysDownloadManager.COLUMN_LOCAL_URI))
-            }
-            cursor?.close()
-
-            if (filePath == null) return null
+            val filePath = localUri ?: return null
             val file = File(Uri.parse(filePath).path ?: return null)
             if (!file.exists()) return null
 
@@ -152,7 +146,7 @@ class DownloadManager(private val context: Context) {
                 else put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/Douyin")
             }
             val collection = if (type == DownloadType.IMAGE) MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                             else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             val uri = context.contentResolver.insert(collection, cv) ?: return null
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 val buf = ByteArray(8192)
