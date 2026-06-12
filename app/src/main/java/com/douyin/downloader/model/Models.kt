@@ -52,8 +52,6 @@ data class Music(
     val url: String = ""
 )
 
-import kotlin.math.absoluteValue
-
 /**
  * 获取所有可下载的URL（含分辨率/码率/帧率信息）
  */
