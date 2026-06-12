@@ -1,22 +1,21 @@
 package com.douyin.downloader.download
 
-import android.app.*
+import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import androidx.core.app.NotificationCompat
-import androidx.documentfile.provider.DocumentFile
 import com.douyin.downloader.model.DownloadItem
 import com.douyin.downloader.model.DownloadType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okio.buffer
+import okio.sink
 import java.io.File
-import java.io.FileOutputStream
+import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
 class DownloadManager(private val context: Context) {
@@ -27,10 +26,6 @@ class DownloadManager(private val context: Context) {
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
         .build()
-
-    companion object {
-        private const val CHANNEL_ID = "download_channel"
-    }
 
     suspend fun downloadToGalleryWithProgress(
         item: DownloadItem,
@@ -44,102 +39,99 @@ class DownloadManager(private val context: Context) {
                 .build()
 
             val response = client.newCall(request).execute()
-
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("下载失败: HTTP ${response.code}"))
-            }
-
+            if (!response.isSuccessful) return@withContext Result.failure(Exception("HTTP ${response.code}"))
             val body = response.body ?: return@withContext Result.failure(Exception("响应体为空"))
+            val contentLength = body.contentLength().coerceAtLeast(0L)
 
+            val mimeType = when (item.type) {
+                DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> "video/mp4"
+                DownloadType.IMAGE -> "image/jpeg"
+            }
             val extension = when (item.type) {
                 DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> ".mp4"
                 DownloadType.IMAGE -> ".jpg"
             }
-
             val safeTitle = item.title.replace(Regex("[/\\\\:*?\"<>|]"), "_").take(80)
             val fileName = "${safeTitle}$extension"
 
-            // 读取数据
-            val bytes = body.bytes()
-            onProgress(1f, formatFileSize(bytes.size.toLong()))
+            // 打开目标输出流
+            val outStream: OutputStream
+            val resultUri: Uri?
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                saveToMediaStore(bytes, fileName, item.type)
+                val cv = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    put(
+                        if (item.type == DownloadType.IMAGE) MediaStore.MediaColumns.RELATIVE_PATH
+                        else MediaStore.Video.Media.RELATIVE_PATH,
+                        if (item.type == DownloadType.IMAGE) "Pictures/Douyin" else "Movies/Douyin"
+                    )
+                }
+                val collection = if (item.type == DownloadType.IMAGE) MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                                else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                resultUri = context.contentResolver.insert(collection, cv)
+                    ?: throw Exception("无法创建媒体条目")
+                outStream = context.contentResolver.openOutputStream(resultUri)
+                    ?: throw Exception("无法打开输出流")
             } else {
-                val dir = if (!savePath.isNullOrEmpty() && File(savePath).exists()) {
-                    File(savePath)
-                } else {
-                    val defaultDir = File(context.getExternalFilesDir(null), "DouyinDownloads")
-                    defaultDir.mkdirs()
-                    defaultDir
-                }
+                resultUri = null
+                val dir = if (!savePath.isNullOrEmpty() && File(savePath).exists()) File(savePath)
+                          else File(context.getExternalFilesDir(null), "DouyinDownloads").also { it.mkdirs() }
                 val file = File(dir, fileName)
-                FileOutputStream(file).use { fos ->
-                    fos.write(bytes)
-                    fos.flush()
-                }
-                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null) { _, _ -> }
-                Result.success(file.absolutePath)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    private fun saveToMediaStore(
-        data: ByteArray,
-        fileName: String,
-        type: DownloadType
-    ): Result<String> {
-        return try {
-            val mimeType = when (type) {
-                DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> "video/mp4"
-                DownloadType.IMAGE -> "image/jpeg"
+                outStream = file.outputStream()
             }
 
-            val contentValues = android.content.ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(
-                    when (type) {
-                        DownloadType.IMAGE -> MediaStore.MediaColumns.RELATIVE_PATH
-                        else -> MediaStore.Video.Media.RELATIVE_PATH
-                    },
-                    when (type) {
-                        DownloadType.IMAGE -> "Pictures/Douyin"
-                        else -> "Movies/Douyin"
+            // 流式下载并直接写入
+            var totalRead = 0L
+            var lastReportTs = System.currentTimeMillis()
+            var lastReportBytes = 0L
+            val buffer = okio.Buffer()
+
+            try {
+                outStream.buffered().use { os ->
+                    val source = body.source()
+                    while (!source.exhausted()) {
+                        val chunk = source.read(buffer, 8192)
+                        if (chunk == -1L) break
+                        buffer.readAll(os.sink().buffer())
+                        totalRead += chunk
+
+                        val now = System.currentTimeMillis()
+                        if (now - lastReportTs >= 500 || totalRead == contentLength) {
+                            val dt = (now - lastReportTs).coerceAtLeast(1L)
+                            val bytesPerSec = ((totalRead - lastReportBytes).toDouble() / dt) * 1000.0
+                            val speed = formatSpeed(bytesPerSec)
+                            val progress = if (contentLength > 0) (totalRead.toFloat() / contentLength).coerceIn(0f, 1f) else -1f
+                            onProgress(progress, speed)
+                            lastReportTs = now
+                            lastReportBytes = totalRead
+                        }
                     }
-                )
+                }
+
+                // 最终通知
+                onProgress(1f, formatSize(totalRead))
+                Result.success(resultUri?.toString() ?: File(File(context.getExternalFilesDir(null), "DouyinDownloads"), fileName).absolutePath)
+            } finally {
+                outStream.close()
             }
-
-            val uri = when (type) {
-                DownloadType.IMAGE -> context.contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    contentValues
-                )
-                else -> context.contentResolver.insert(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    contentValues
-                )
-            } ?: throw Exception("无法创建MediaStore条目")
-
-            context.contentResolver.openOutputStream(uri)?.use { os ->
-                os.write(data)
-                os.flush()
-            } ?: throw Exception("无法写入文件")
-
-            Result.success(uri.toString())
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private fun formatFileSize(bytes: Long): String {
-        return when {
-            bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-            bytes < 1024 * 1024 * 1024 -> "${"%.1f".format(bytes / (1024.0 * 1024))} MB"
-            else -> "${"%.2f".format(bytes / (1024.0 * 1024 * 1024))} GB"
-        }
+    private fun formatSize(bytes: Long) = when {
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+        bytes < 1024 * 1024 * 1024 -> "${"%.1f".format(bytes / (1024.0 * 1024))} MB"
+        else -> "${"%.2f".format(bytes / (1024.0 * 1024 * 1024))} GB"
+    }
+
+    private fun formatSpeed(bytesPerSec: Double) = when {
+        bytesPerSec < 1024 -> "${bytesPerSec.toLong()} B/s"
+        bytesPerSec < 1024 * 1024 -> "${"%.1f".format(bytesPerSec / 1024)} KB/s"
+        bytesPerSec < 1024 * 1024 * 1024 -> "${"%.1f".format(bytesPerSec / (1024 * 1024))} MB/s"
+        else -> "${"%.2f".format(bytesPerSec / (1024 * 1024 * 1024))} GB/s"
     }
 }
