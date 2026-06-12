@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class HistoryEntry(
     val url: String,
     val title: String,
