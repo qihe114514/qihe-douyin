@@ -85,8 +85,7 @@ dependencies {
     // DocumentFile for SAF path handling
     implementation("androidx.documentfile:documentfile:1.0.1")
 
-    // Backdrop - Liquid Glass effects
-    implementation("io.github.kyant0:backdrop:1.0.6")
+    // Liquid Glass effects powered by native Compose (blur + alpha + clipping)
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
