@@ -172,24 +172,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val savePath = if (_uiState.value.savePath.isNotBlank()) _uiState.value.savePath else null
-                downloadManager.downloadWithProgress(item, savePath).collect { pair ->
-                    if (pair == null) {
-                        // 下载完成
-                        val map = _uiState.value.downloadStatus.toMutableMap()
-                        map[index] = DownloadStatus.Success("")
-                        _uiState.update { it.copy(downloadStatus = map) }
-                    } else {
-                        val (progress, speed) = pair
-                        val progressMap = _uiState.value.downloadProgress.toMutableMap()
-                        val speedMap = _uiState.value.downloadSpeed.toMutableMap()
-                        progressMap[index] = progress
-                        speedMap[index] = speed
-                        _uiState.update {
-                            it.copy(downloadProgress = progressMap, downloadSpeed = speedMap)
-                        }
+                downloadManager.downloadSync(item) { progress, speed ->
+                    val progressMap = _uiState.value.downloadProgress.toMutableMap()
+                    val speedMap = _uiState.value.downloadSpeed.toMutableMap()
+                    progressMap[index] = progress
+                    speedMap[index] = speed
+                    _uiState.update {
+                        it.copy(downloadProgress = progressMap, downloadSpeed = speedMap)
                     }
                 }
+                // 下载完成
+                val map = _uiState.value.downloadStatus.toMutableMap()
+                map[index] = DownloadStatus.Success("")
+                _uiState.update { it.copy(downloadStatus = map) }
             } catch (e: Exception) {
                 val map = _uiState.value.downloadStatus.toMutableMap()
                 map[index] = DownloadStatus.Error(e.message ?: "下载失败")
