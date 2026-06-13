@@ -4,10 +4,6 @@ import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -118,21 +113,13 @@ fun MainScreen(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // 解析按钮带按压缩放动画
-                    val buttonInteraction = remember { MutableInteractionSource() }
-                    val buttonScale by animateFloatAsState(
-                        if (buttonInteraction.collectIsPressedAsState().value) 0.96f else 1f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    )
                     Button(
                         onClick = onParseClick,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .scale(buttonScale),
+                            .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !uiState.isLoading,
-                        interactionSource = buttonInteraction
+                        enabled = !uiState.isLoading
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
@@ -340,7 +327,7 @@ private fun VideoBackground(
                 PlayerView(ctx).apply {
                     this.player = player
                     useController = false
-                    resizeMode = 1 // FIT 保持比例不拉伸
+                    resizeMode = 1 // FIT 不拉伸
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -480,7 +467,6 @@ private fun DownloadItemCard(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.size(42.dp)
                         ) {
-                            // 带过渡动画的进度条
                             val animatedProgress by animateFloatAsState(
                                 targetValue = progress,
                                 animationSpec = tween(300)
@@ -529,17 +515,9 @@ private fun DownloadItemCard(
                     }
                 }
                 else -> {
-                    // 下载按钮带缩放动画
-                    val downloadInteraction = remember { MutableInteractionSource() }
-                    val downloadScale by animateFloatAsState(
-                        if (downloadInteraction.collectIsPressedAsState().value) 0.92f else 1f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    )
                     Button(
                         onClick = onDownload,
-                        interactionSource = downloadInteraction,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier.scale(downloadScale)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Icon(Icons.Default.Download, "下载", modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
