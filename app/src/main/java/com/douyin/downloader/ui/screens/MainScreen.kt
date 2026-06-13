@@ -2,7 +2,6 @@ package com.douyin.downloader.ui.screens
 
 import android.net.Uri
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,7 +56,7 @@ fun MainScreen(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background.copy(alpha = uiState.bgOpacity * 0.7f)
+            color = MaterialTheme.colorScheme.background.copy(alpha = uiState.bgOpacity * 0.55f)
         ) {
             Scaffold(
                 topBar = {
@@ -65,14 +64,14 @@ fun MainScreen(
                         title = { Text("抖音视频下载", fontWeight = FontWeight.Bold) },
                         actions = {
                             IconButton(onClick = onHistoryClick) {
-                                Icon(Icons.Default.History, "历史记录")
+                                Icon(Icons.Default.AutoAwesome, "历史记录")
                             }
                             IconButton(onClick = onSettingsClick) {
-                                Icon(Icons.Default.Settings, "设置")
+                                Icon(Icons.Default.Tune, "设置")
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                         )
                     )
                 },
@@ -86,8 +85,16 @@ fun MainScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(Modifier.height(40.dp))
+                    Spacer(Modifier.height(32.dp))
 
+                    Icon(
+                        Icons.Default.WaterDrop,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        modifier = Modifier.size(48.dp)
+                    )
+
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         text = "抖音无水印解析",
                         style = MaterialTheme.typography.headlineMedium,
@@ -95,43 +102,46 @@ fun MainScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = "粘贴抖音分享链接，一键下载无水印视频",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
 
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(28.dp))
 
-                    UrlInputField(
+                    GlassUrlInputField(
                         url = uiState.shareUrl,
                         onUrlChange = onUrlChange,
                         onParseClick = onParseClick
                     )
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(14.dp))
 
                     Button(
                         onClick = onParseClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        enabled = !uiState.isLoading
+                        shape = RoundedCornerShape(18.dp),
+                        enabled = !uiState.isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                        )
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(22.dp),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(8.dp))
                             Text("解析中...")
                         } else {
-                            Icon(Icons.Default.Search, "解析")
+                            Icon(Icons.Default.Radar, "解析")
                             Spacer(Modifier.width(8.dp))
-                            Text("解析视频", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text("解析视频", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -141,16 +151,16 @@ fun MainScreen(
                                 .fillMaxWidth()
                                 .padding(top = 16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(14.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Error, "错误", tint = MaterialTheme.colorScheme.onErrorContainer)
-                                Spacer(Modifier.width(12.dp))
+                                Icon(Icons.Default.Report, "错误", tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(Modifier.width(10.dp))
                                 Text(
                                     text = uiState.error ?: "",
                                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -163,25 +173,26 @@ fun MainScreen(
                     if (uiState.downloadItems.isNotEmpty()) {
                         Spacer(Modifier.height(24.dp))
 
-                        uiState.parsedData?.let { data -> VideoInfoCard(data) }
+                        uiState.parsedData?.let { data -> GlassVideoInfoCard(data) }
 
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = "可下载内容 (${uiState.downloadItems.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 10.dp)
                         )
 
                         uiState.downloadItems.forEachIndexed { index, item ->
-                            DownloadItemCard(
+                            GlassDownloadItemCard(
                                 index = index,
                                 item = item,
                                 status = uiState.downloadStatus[index],
                                 progress = uiState.downloadProgress[index] ?: 0f,
+                                speed = uiState.downloadSpeed[index] ?: "",
                                 onDownload = { onDownloadClick(index, item) }
                             )
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(10.dp))
                         }
                     }
 
@@ -193,7 +204,7 @@ fun MainScreen(
 }
 
 @Composable
-private fun UrlInputField(
+private fun GlassUrlInputField(
     url: String,
     onUrlChange: (String) -> Unit,
     onParseClick: () -> Unit
@@ -210,7 +221,7 @@ private fun UrlInputField(
         trailingIcon = {
             if (url.isNotEmpty()) {
                 IconButton(onClick = { onUrlChange("") }) {
-                    Icon(Icons.Default.Clear, "清除")
+                    Icon(Icons.Default.Backspace, "清除")
                 }
             } else {
                 IconButton(onClick = {
@@ -222,7 +233,7 @@ private fun UrlInputField(
                 }
             }
         },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Uri,
@@ -235,8 +246,10 @@ private fun UrlInputField(
             }
         ),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         )
     )
 }
@@ -312,7 +325,7 @@ private fun VideoBackground(
                 PlayerView(ctx).apply {
                     this.player = player
                     useController = false
-                    resizeMode = 1 // FIT 保持比例不拉伸
+                    resizeMode = 1
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -321,12 +334,12 @@ private fun VideoBackground(
 }
 
 @Composable
-private fun VideoInfoCard(data: VideoData) {
+private fun GlassVideoInfoCard(data: VideoData) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -349,14 +362,14 @@ private fun VideoInfoCard(data: VideoData) {
             }
 
             data.author?.let { author ->
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
                         model = author.avatar,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(24.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(14.dp))
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -373,7 +386,7 @@ private fun VideoInfoCard(data: VideoData) {
                 Text(
                     text = data.title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -383,24 +396,25 @@ private fun VideoInfoCard(data: VideoData) {
 }
 
 @Composable
-private fun DownloadItemCard(
+private fun GlassDownloadItemCard(
     index: Int,
     item: DownloadItem,
     status: DownloadStatus?,
     progress: Float,
+    speed: String,
     onDownload: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -410,13 +424,14 @@ private fun DownloadItemCard(
             ) {
                 Icon(
                     imageVector = when (item.type) {
-                        DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> Icons.Default.VideoFile
-                        DownloadType.IMAGE -> Icons.Default.Image
+                        DownloadType.VIDEO, DownloadType.LIVE_PHOTO -> Icons.Default.Movie
+                        DownloadType.IMAGE -> Icons.Default.Collections
                     },
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when (item.type) {
@@ -436,28 +451,36 @@ private fun DownloadItemCard(
                             }
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (status is DownloadStatus.Downloading && speed.isNotBlank()) {
+                        Text(
+                            text = speed,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 10.sp
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(10.dp))
 
             when (val s = status) {
                 is DownloadStatus.Downloading -> {
-                    if (progress >= 0f) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.size(36.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.size(38.dp),
+                            strokeWidth = 3.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (progress >= 0f) {
                             Text(
                                 text = "${(progress * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelSmall,
@@ -465,12 +488,6 @@ private fun DownloadItemCard(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(28.dp),
-                            strokeWidth = 3.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                     }
                 }
                 is DownloadStatus.Success -> {
@@ -484,7 +501,7 @@ private fun DownloadItemCard(
                 is DownloadStatus.Error -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Error,
+                            Icons.Default.Warning,
                             "下载失败",
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(18.dp)
@@ -498,7 +515,8 @@ private fun DownloadItemCard(
                 else -> {
                     Button(
                         onClick = onDownload,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.Default.Download, "下载", modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))

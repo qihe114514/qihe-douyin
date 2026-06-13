@@ -44,11 +44,11 @@ fun HistoryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.55f)
+        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.4f)
     ) { paddingValues ->
         if (historyList.isEmpty()) {
             Box(
@@ -59,16 +59,16 @@ fun HistoryScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.History,
+                        Icons.Default.ManageSearch,
                         contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        modifier = Modifier.size(72.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
                         "暂无解析记录",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -84,28 +84,28 @@ fun HistoryScreen(
                 itemsIndexed(historyList) { _, entry ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
                         ),
                         onClick = { onItemClick(entry) }
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 when (entry.type) {
-                                    "video" -> Icons.Default.VideoFile
-                                    "image" -> Icons.Default.Image
+                                    "video" -> Icons.Default.Movie
+                                    "image" -> Icons.Default.Collections
                                     "live" -> Icons.Default.Camera
                                     else -> Icons.Default.Link
                                 },
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                modifier = Modifier.size(22.dp)
                             )
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
@@ -120,7 +120,7 @@ fun HistoryScreen(
                                 Text(
                                     text = entry.url,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -129,7 +129,7 @@ fun HistoryScreen(
                             Text(
                                 text = formatTimestamp(entry.timestamp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                 fontSize = 11.sp
                             )
                         }
