@@ -86,7 +86,7 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
 
     // Backdrop - Liquid Glass effects
-    implementation("io.github.kyant0:backdrop:2.0.0")
+    implementation("io.github.kyant0:backdrop:1.0.6")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
