@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.douyin.downloaderqh"
-        minSdk = 36
+        minSdk = 31
         targetSdk = 36
         versionCode = 5
         versionName = "2.0"
