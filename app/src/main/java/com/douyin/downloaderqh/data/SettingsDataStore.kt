@@ -24,6 +24,7 @@ class SettingsDataStore(private val context: Context) {
         val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
         val DEFAULT_PAGE = intPreferencesKey("default_page")
         val PARSE_HISTORY = stringPreferencesKey("parse_history")
+        val TAB_ORDER = stringPreferencesKey("tab_order")
     }
 
     val savePath: Flow<String> = context.dataStore.data.map { it[SAVE_PATH] ?: "" }
@@ -34,6 +35,10 @@ class SettingsDataStore(private val context: Context) {
     val videoSoundEnabled: Flow<Boolean> = context.dataStore.data.map { it[VIDEO_SOUND_ENABLED] ?: false }
     val updateChannel: Flow<String> = context.dataStore.data.map { it[UPDATE_CHANNEL] ?: "beta" }
     val defaultPage: Flow<Int> = context.dataStore.data.map { it[DEFAULT_PAGE] ?: 0 }
+    val tabOrder: Flow<List<Int>> = context.dataStore.data.map { prefs ->
+        (prefs[TAB_ORDER] ?: "0,1,2").split(",").mapNotNull { it.toIntOrNull() }
+    }
+
     val parseHistory: Flow<List<HistoryEntry>> = context.dataStore.data.map { prefs ->
         val json = prefs[PARSE_HISTORY] ?: "[]"
         try { Json.decodeFromString<List<HistoryEntry>>(json) } catch (_: Exception) { emptyList() }
@@ -57,6 +62,8 @@ class SettingsDataStore(private val context: Context) {
             prefs[PARSE_HISTORY] = Json.encodeToString(list)
         }
     }
+
+    suspend fun setTabOrder(order: List<Int>) { context.dataStore.edit { it[TAB_ORDER] = order.joinToString(",") } }
 
     suspend fun clearParseHistory() { context.dataStore.edit { it[PARSE_HISTORY] = "[]" } }
 }

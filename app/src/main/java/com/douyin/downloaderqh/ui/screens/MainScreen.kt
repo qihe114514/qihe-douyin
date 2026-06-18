@@ -94,7 +94,7 @@ fun MainScreen(platform: Platform,
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         text = if (platform == Platform.DOUYIN) "粘贴抖音分享链接，一键下载无水印视频" else "粘贴小红书笔记链接，一键下载无水印",
                         style = MaterialTheme.typography.bodyMedium,

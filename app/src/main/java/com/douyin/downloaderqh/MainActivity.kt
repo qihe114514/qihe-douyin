@@ -44,11 +44,12 @@ class MainActivity : ComponentActivity() {
                 var showSettings by remember { mutableStateOf(false) }
                 var showHistory by remember { mutableStateOf(false) }
 
-                val tabs = listOf(
+                val allTabs = listOf(
                     BottomTab("首页", Icons.Default.Home, null),
                     BottomTab("抖音", Icons.Default.MusicNote, Platform.DOUYIN),
                     BottomTab("小红书", Icons.Default.Star, Platform.XIAOHONGSHU)
                 )
+                val tabs = uiState.tabOrder.map { allTabs[it] }
 
                 // 预测性返回动画：系统返回手势与设置/历史页面联动
                 BackHandler(enabled = showSettings || showHistory) {
@@ -94,6 +95,7 @@ class MainActivity : ComponentActivity() {
                             videoSoundEnabled = uiState.videoSoundEnabled,
                             defaultPage = uiState.defaultPage,
                             updateChannel = uiState.updateChannel,
+                            tabOrder = uiState.tabOrder,
                             onSetSavePath = { viewModel.setSavePath(it) },
                             onSetBgWallpaper = { uri, type -> viewModel.setBgWallpaper(uri, type) },
                             onSetBgBlurRadius = { viewModel.setBgBlurRadius(it) },
@@ -103,6 +105,7 @@ class MainActivity : ComponentActivity() {
                             onSetDefaultPage = { viewModel.setDefaultPage(it) },
                             onUpdateClick = { viewModel.checkUpdate() },
                             onUpdateChannelChange = { viewModel.setUpdateChannel(it) },
+                            onSetTabOrder = { viewModel.setTabOrder(it) },
                             onBack = { showSettings = false }
                         )
                     } else {
@@ -170,7 +173,7 @@ fun HomePage(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(20.dp))
                 Text("万能下载器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(2.dp))
                 Text("支持抖音 & 小红书无水印解析下载", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

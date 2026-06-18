@@ -55,6 +55,7 @@ data class MainUiState(
 
     val parseHistory: List<HistoryEntry> = emptyList(),
     val updateChannel: String = "beta",
+    val tabOrder: List<Int> = listOf(0, 1, 2),
     val latestVersion: String = ""
 )
 
@@ -86,6 +87,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { settingsStore.parseHistory.collect { v -> _uiState.update { it.copy(parseHistory = v) } } }
         viewModelScope.launch { settingsStore.updateChannel.collect { v -> _uiState.update { it.copy(updateChannel = v) } } }
         viewModelScope.launch { settingsStore.defaultPage.collect { v -> _uiState.update { it.copy(defaultPage = v, currentTab = v) } } }
+        viewModelScope.launch { settingsStore.tabOrder.collect { v -> _uiState.update { it.copy(tabOrder = v) } } }
     }
 
     fun selectTab(index: Int, platform: Platform) {
@@ -216,6 +218,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearBgWallpaper() { viewModelScope.launch { val curUri = _uiState.value.bgWallpaperUri; if (curUri.isNotBlank()) try { getApplication<Application>().contentResolver.releasePersistableUriPermission(Uri.parse(curUri), android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}; settingsStore.setBgWallpaper("", "none") } }
     fun clearHistory() { viewModelScope.launch { settingsStore.clearParseHistory() } }
     fun clearError() { _uiState.update { it.copy(error = null) } }
+
+    fun setTabOrder(order: List<Int>) { viewModelScope.launch { settingsStore.setTabOrder(order) } }
 
     fun setUpdateChannel(channel: String) { viewModelScope.launch { settingsStore.setUpdateChannel(channel); _uiState.update { it.copy(updateChannel = channel) } } }
     fun setDefaultPage(page: Int) { viewModelScope.launch { settingsStore.setDefaultPage(page); _uiState.update { it.copy(defaultPage = page) } } }

@@ -37,6 +37,7 @@ fun SettingsScreen(
     videoSoundEnabled: Boolean,
     defaultPage: Int,
     updateChannel: String,
+    tabOrder: List<Int>,
     onSetSavePath: (Uri) -> Unit,
     onSetBgWallpaper: (Uri, String) -> Unit,
     onSetBgBlurRadius: (Float) -> Unit,
@@ -46,6 +47,7 @@ fun SettingsScreen(
     onSetDefaultPage: (Int) -> Unit,
     onUpdateClick: () -> Unit,
     onUpdateChannelChange: (String) -> Unit,
+    onSetTabOrder: (List<Int>) -> Unit,
     onBack: () -> Unit
 ) {
     var currentPage by remember { mutableStateOf(SettingsPage.MAIN) }
@@ -77,7 +79,7 @@ fun SettingsScreen(
             onTabOrder = { currentPage = SettingsPage.TAB_ORDER }
         )
         SettingsPage.ABOUT -> AboutSubPage(updateChannel = updateChannel, onUpdateClick = onUpdateClick, onUpdateChannelChange = onUpdateChannelChange, onBack = { currentPage = SettingsPage.MAIN })
-        SettingsPage.TAB_ORDER -> TabOrderSubPage(onBack = { currentPage = SettingsPage.PAGE_SETTINGS })
+        SettingsPage.TAB_ORDER -> TabOrderSubPage(tabOrder = tabOrder, onSaveTabOrder = onSetTabOrder, onBack = { currentPage = SettingsPage.PAGE_SETTINGS })
     }
             }
         }
@@ -305,27 +307,65 @@ fun AboutSubPage(updateChannel: String, onUpdateClick: () -> Unit, onUpdateChann
 // ==================== 底栏排序子页 ====================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabOrderSubPage(onBack: () -> Unit) {
+fun TabOrderSubPage(tabOrder: List<Int>, onSaveTabOrder: (List<Int>) -> Unit, onBack: () -> Unit) {
+    var currentOrder by remember(tabOrder) { mutableStateOf(tabOrder.toMutableList()) }
+    val tabNames = listOf("首页", "抖音", "小红书")
+
     SubPageScaffold(title = "底栏排序", onBack = onBack) {
         Column {
-            Text("拖拽排序", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(12.dp))
-            Text("长按并拖拽标签来调整底部导航栏的顺序", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(24.dp))
+            Text("调整底部导航栏顺序", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("点击上下箭头移动标签位置", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(16.dp))
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    listOf("首页", "抖音", "小红书").forEachIndexed { i, name ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DragHandle, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.padding(12.dp)) {
+                    currentOrder.forEachIndexed { i, tabIdx ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.DragHandle, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(12.dp))
-                            Text(name, style = MaterialTheme.typography.bodyLarge)
+                            Text(tabNames[tabIdx], style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            // 上移按钮
+                            IconButton(
+                                onClick = {
+                                    if (i > 0) {
+                                        val newOrder = currentOrder.toMutableList()
+                                        val tmp = newOrder[i]
+                                        newOrder[i] = newOrder[i - 1]
+                                        newOrder[i - 1] = tmp
+                                        currentOrder = newOrder
+                                    }
+                                },
+                                enabled = i > 0,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowUp, "上移", modifier = Modifier.size(20.dp), tint = if (i > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                            }
+                            // 下移按钮
+                            IconButton(
+                                onClick = {
+                                    if (i < currentOrder.size - 1) {
+                                        val newOrder = currentOrder.toMutableList()
+                                        val tmp = newOrder[i]
+                                        newOrder[i] = newOrder[i + 1]
+                                        newOrder[i + 1] = tmp
+                                        currentOrder = newOrder
+                                    }
+                                },
+                                enabled = i < currentOrder.size - 1,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowDown, "下移", modifier = Modifier.size(20.dp), tint = if (i < currentOrder.size - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                            }
                         }
-                        if (i < 2) Divider()
+                        if (i < currentOrder.size - 1) Divider()
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Text("拖拽排序功能将在后续版本实现", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { onSaveTabOrder(currentOrder.toList()); onBack() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("保存排序") }
         }
     }
 }
