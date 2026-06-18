@@ -3,6 +3,7 @@ package com.douyin.downloaderqh
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
@@ -45,6 +46,12 @@ class MainActivity : ComponentActivity() {
                     BottomTab("抖音", Icons.Default.MusicNote, Platform.DOUYIN),
                     BottomTab("小红书", Icons.Default.Star, Platform.XIAOHONGSHU)
                 )
+
+                // 预测性返回动画：系统返回手势与设置/历史页面联动
+                BackHandler(enabled = showSettings || showHistory) {
+                    showSettings = false
+                    showHistory = false
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),

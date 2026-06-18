@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -44,6 +45,10 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     var currentPage by remember { mutableStateOf(SettingsPage.MAIN) }
+
+    BackHandler(enabled = currentPage != SettingsPage.MAIN) {
+        currentPage = SettingsPage.MAIN
+    }
 
     when (currentPage) {
         SettingsPage.MAIN -> MainSettingsPage(onBack = onBack, onNavigate = { currentPage = it })

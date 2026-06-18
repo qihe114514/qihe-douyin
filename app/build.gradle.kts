@@ -13,8 +13,8 @@ android {
         applicationId = "com.douyin.downloaderqh"
         minSdk = 31
         targetSdk = 36
-        versionCode = 19
-        versionName = "2.2.3.9"
+        versionCode = 20
+        versionName = "2.3.0"
     }
 
     buildTypes {
