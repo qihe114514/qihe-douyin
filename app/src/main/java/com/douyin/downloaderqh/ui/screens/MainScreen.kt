@@ -63,7 +63,7 @@ fun MainScreen(platform: Platform,
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text(if (platform == Platform.DOUYIN) "抖音视频下载" else "小红书笔记下载", fontWeight = FontWeight.Bold) },
+                        title = { Text(if (platform == Platform.DOUYIN) "抖音" else "小红书", fontWeight = FontWeight.Bold) },
                         actions = {
                             IconButton(onClick = onHistoryClick) {
                                 Icon(Icons.Default.History, "历史记录")
@@ -87,21 +87,14 @@ fun MainScreen(platform: Platform,
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = if (platform == Platform.DOUYIN) "抖音无水印解析" else "小红书无水印解析",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = if (platform == Platform.DOUYIN) "粘贴抖音分享链接，一键下载无水印视频" else "粘贴小红书笔记链接，一键下载无水印",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     UrlInputField(platform, 
                         url = uiState.shareUrl,
@@ -194,7 +187,7 @@ fun MainScreen(platform: Platform,
                         }
                     }
 
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(40.dp))
                 }
             }
         }
