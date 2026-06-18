@@ -56,7 +56,7 @@ class DouyinApiClient {
       });
       final streamedResponse = await _client.send(request);
       final location = streamedResponse.headers['location'] ?? '';
-      streamedResponse.drain<List<int>>();
+      await streamedResponse.stream.drain();
       return location.isNotEmpty ? location : url;
     } catch (_) {
       return url;
@@ -103,7 +103,7 @@ class DouyinApiClient {
         });
         final streamedResponse = await client.send(request);
         final location = streamedResponse.headers['location'] ?? '';
-        streamedResponse.drain<List<int>>();
+        await streamedResponse.stream.drain();
         if (location.isNotEmpty) {
           return location.startsWith('http')
               ? location
