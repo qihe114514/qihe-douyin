@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MusicNote
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.douyin.downloaderqh.model.Platform
 import com.douyin.downloaderqh.ui.MainViewModel
+import com.douyin.downloaderqh.ui.screens.WallpaperBackground
 import com.douyin.downloaderqh.ui.screens.*
 import com.douyin.downloaderqh.ui.theme.DouyinDownloaderTheme
 
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
                             bgOpacity = uiState.bgOpacity,
                             videoSoundEnabled = uiState.videoSoundEnabled,
                             defaultPage = uiState.defaultPage,
+                            updateChannel = uiState.updateChannel,
                             onSetSavePath = { viewModel.setSavePath(it) },
                             onSetBgWallpaper = { uri, type -> viewModel.setBgWallpaper(uri, type) },
                             onSetBgBlurRadius = { viewModel.setBgBlurRadius(it) },
@@ -98,6 +101,7 @@ class MainActivity : ComponentActivity() {
                             onClearBgWallpaper = { viewModel.clearBgWallpaper() },
                             onSetDefaultPage = { viewModel.setDefaultPage(it) },
                             onUpdateClick = { viewModel.checkUpdate() },
+                            onUpdateChannelChange = { viewModel.setUpdateChannel(it) },
                             onBack = { showSettings = false }
                         )
                     } else {
@@ -110,6 +114,7 @@ class MainActivity : ComponentActivity() {
                                 0 -> HomePage(
                                     onNavigateDouyin = { viewModel.selectTab(1, Platform.DOUYIN) },
                                     onNavigateXiaohongshu = { viewModel.selectTab(2, Platform.XIAOHONGSHU) },
+                                    uiState = uiState,
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 1 -> MainScreen(
@@ -145,32 +150,50 @@ class MainActivity : ComponentActivity() {
 fun HomePage(
     onNavigateDouyin: () -> Unit,
     onNavigateXiaohongshu: () -> Unit,
+    uiState: MainUiState = MainUiState(),
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.padding(24.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("万能下载器", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(8.dp))
-        Text("支持抖音 & 小红书无水印解析下载", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
-        Text("by 其核", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+    Box(modifier = modifier.fillMaxSize()) {
+        // 背景壁纸
+        WallpaperBackground(uiState)
+        // 半透明覆盖层
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background.copy(alpha = uiState.bgOpacity * 0.7f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(16.dp))
+                Text("万能下载器", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                Text("支持抖音 & 小红书无水印解析下载", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(2.dp))
+                Text("by 其核", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
 
-        Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
 
-        Card(onClick = onNavigateDouyin, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text("🎵 抖音解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text("粘贴抖音分享链接，解析无水印视频/图集/实况", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Card(onClick = onNavigateXiaohongshu, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text("📕 小红书解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                Text("粘贴小红书分享链接，解析无水印视频和图片", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                Card(onClick = onNavigateDouyin, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text("🎵 抖音解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Spacer(Modifier.height(4.dp))
+                        Text("粘贴抖音分享链接，解析无水印视频/图集/实况", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Card(onClick = onNavigateXiaohongshu, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text("📕 小红书解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Spacer(Modifier.height(4.dp))
+                        Text("粘贴小红书分享链接，解析无水印视频和图片", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
             }
         }
     }

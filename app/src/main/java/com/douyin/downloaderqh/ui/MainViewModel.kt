@@ -191,39 +191,81 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val channel = _uiState.value.updateChannel
-                val url = if (channel == "release") "https://api.github.com/repos/qihe114514/qihe-douyin/releases/latest"
-                else "https://api.github.com/repos/qihe114514/qihe-douyin/releases"
-                val request = Request.Builder().url(url).get().addHeader("Accept", "application/vnd.github.v3+json").addHeader("User-Agent", "DouyinDownloader").build()
-                val response = updateClient.newCall(request).execute()
-                val body = response.body?.string() ?: ""
-                if (!response.isSuccessful) {
-                    _uiState.update { it.copy(latestVersion = "更新检查失败: HTTP ${response.code}") }
-                    return@launch
-                }
-                val json = Json.parseToJsonElement(body)
-                val tag: String = if (channel == "release") {
-                    json.jsonObject["tag_name"]?.jsonPrimitive?.content ?: "未知"
-                } else {
-                    val arr = json.jsonArray
-                    if (arr.isEmpty()) "无发布版本"
-                    else arr.firstOrNull()?.jsonObject?.get("tag_name")?.jsonPrimitive?.content ?: "未知"
-                }
-                if (tag.isNotBlank() && tag != "未知" && tag != "无发布版本") {
-                    val currentVerName = android.content.pm.PackageInfo::class.java.getDeclaredField("versionName").let {
-                        it.isAccessible = true
-                        (appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "v2.2.3")
+                val currentVerName = try {
+                    appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "2.4.0"
+                } catch (_: Exception) { "2.4.0" }
+
+                if (channel == "release") {
+                    // 稳定版：查询 GitHub Releases 最新版
+                    val url = "https://api.github.com/repos/qihe114514/qihe-douyin/releases/latest"
+                    val request = Request.Builder().url(url).get()
+                        .addHeader("Accept", "application/vnd.github.v3+json")
+                        .addHeader("User-Agent", "DouyinDownloader")
+                        .build()
+                    val response = updateClient.newCall(request).execute()
+                    val body = response.body?.string() ?: ""
+                    if (!response.isSuccessful) {
+                        _uiState.update { it.copy(latestVersion = "更新检查失败: HTTP ${response.code}") }
+                        return@launch
                     }
-                    if (tag != currentVerName && tag != "v$currentVerName" && currentVerName != tag.removePrefix("v")) {
-                        _uiState.update { it.copy(latestVersion = "发现新版本: $tag (当前: $currentVerName)") }
+                    val json = Json.parseToJsonElement(body)
+                    val tag = json.jsonObject["tag_name"]?.jsonPrimitive?.content ?: "未知"
+                    val releaseUrl = json.jsonObject["html_url"]?.jsonPrimitive?.content ?: ""
+                    val bodyText = json.jsonObject["body"]?.jsonPrimitive?.contentOrNull ?: ""
+
+                    val remoteVer = tag.removePrefix("v")
+                    val localVer = currentVerName.removePrefix("v")
+                    if (compareVersions(remoteVer, localVer) > 0) {
+                        _uiState.update { it.copy(latestVersion = "发现新版本: $tag (当前: v$currentVerName)\n$releaseUrl") }
                     } else {
-                        _uiState.update { it.copy(latestVersion = "已是最新版本 ($tag)") }
+                        _uiState.update { it.copy(latestVersion = "已是最新版本 (v$currentVerName)") }
                     }
                 } else {
-                    _uiState.update { it.copy(latestVersion = "无法获取版本信息") }
+                    // Beta版：查询 GitHub Actions 最新成功构建
+                    val url = "https://api.github.com/repos/qihe114514/qihe-douyin/actions/artifacts?per_page=5"
+                    val request = Request.Builder().url(url).get()
+                        .addHeader("Accept", "application/vnd.github.v3+json")
+                        .addHeader("User-Agent", "DouyinDownloader")
+                        .build()
+                    val response = updateClient.newCall(request).execute()
+                    val body = response.body?.string() ?: ""
+                    if (!response.isSuccessful) {
+                        _uiState.update { it.copy(latestVersion = "Beta检查失败: HTTP ${response.code}") }
+                        return@launch
+                    }
+                    val json = Json.parseToJsonElement(body)
+                    val artifacts = json.jsonObject["artifacts"]?.jsonArray
+                    if (artifacts.isNullOrEmpty()) {
+                        _uiState.update { it.copy(latestVersion = "暂无Beta构建产物") }
+                        return@launch
+                    }
+                    // 找到最新的 APK 构建产物
+                    val latestArtifact = artifacts.firstOrNull { art ->
+                        art.jsonObject["name"]?.jsonPrimitive?.content?.contains("app-release", ignoreCase = true) == true
+                    } ?: artifacts.first()
+                    val artifactName = latestArtifact.jsonObject["name"]?.jsonPrimitive?.content ?: "未知"
+                    val createdAt = latestArtifact.jsonObject["created_at"]?.jsonPrimitive?.content ?: ""
+                    val archiveUrl = latestArtifact.jsonObject["archive_download_url"]?.jsonPrimitive?.content ?: ""
+
+                    // 从 artifact name 提取版本信息
+                    val buildVer = "build-$artifactName-$createdAt".take(40)
+                    _uiState.update { it.copy(latestVersion = "最新Beta构建: $artifactName\n创建时间: ${createdAt.take(10)}\n$archiveUrl") }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(latestVersion = "检查失败: ${e.message}") }
             }
         }
+    }
+
+    // 版本号比较工具 例如 "2.4.0" > "2.3.0"
+    private fun compareVersions(v1: String, v2: String): Int {
+        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
+        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(parts1.size, parts2.size)) {
+            val p1 = parts1.getOrElse(i) { 0 }
+            val p2 = parts2.getOrElse(i) { 0 }
+            if (p1 != p2) return p1 - p2
+        }
+        return 0
     }
 }

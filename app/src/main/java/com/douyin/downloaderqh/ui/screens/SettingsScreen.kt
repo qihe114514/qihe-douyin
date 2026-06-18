@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 
 enum class SettingsPage { MAIN, DOWNLOAD, WALLPAPER, PAGE_SETTINGS, ABOUT, TAB_ORDER }
 
@@ -34,6 +35,7 @@ fun SettingsScreen(
     bgOpacity: Float,
     videoSoundEnabled: Boolean,
     defaultPage: Int,
+    updateChannel: String,
     onSetSavePath: (Uri) -> Unit,
     onSetBgWallpaper: (Uri, String) -> Unit,
     onSetBgBlurRadius: (Float) -> Unit,
@@ -42,6 +44,7 @@ fun SettingsScreen(
     onClearBgWallpaper: () -> Unit,
     onSetDefaultPage: (Int) -> Unit,
     onUpdateClick: () -> Unit,
+    onUpdateChannelChange: (String) -> Unit,
     onBack: () -> Unit
 ) {
     var currentPage by remember { mutableStateOf(SettingsPage.MAIN) }
@@ -50,7 +53,13 @@ fun SettingsScreen(
         currentPage = SettingsPage.MAIN
     }
 
-    when (currentPage) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        WallpaperBackground(bgWallpaperUri, bgWallpaperType, bgBlurRadius, bgOpacity, videoSoundEnabled)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background.copy(alpha = bgOpacity * 0.7f)
+        ) {
+            when (currentPage) {
         SettingsPage.MAIN -> MainSettingsPage(onBack = onBack, onNavigate = { currentPage = it })
         SettingsPage.DOWNLOAD -> DownloadSettingsSubPage(savePath = savePath, onSetSavePath = onSetSavePath, onBack = { currentPage = SettingsPage.MAIN })
         SettingsPage.WALLPAPER -> WallpaperSubPage(
@@ -66,10 +75,12 @@ fun SettingsScreen(
             onBack = { currentPage = SettingsPage.MAIN },
             onTabOrder = { currentPage = SettingsPage.TAB_ORDER }
         )
-        SettingsPage.ABOUT -> AboutSubPage(onUpdateClick = onUpdateClick, onBack = { currentPage = SettingsPage.MAIN })
+        SettingsPage.ABOUT -> AboutSubPage(updateChannel = updateChannel, onUpdateClick = onUpdateClick, onUpdateChannelChange = onUpdateChannelChange, onBack = { currentPage = SettingsPage.MAIN })
         SettingsPage.TAB_ORDER -> TabOrderSubPage(onBack = { currentPage = SettingsPage.PAGE_SETTINGS })
     }
-}
+            }
+        }
+    }
 
 // ==================== 主设置页 ====================
 @OptIn(ExperimentalMaterial3Api::class)
@@ -234,17 +245,56 @@ fun PageSettingsSubPage(defaultPage: Int, onSetDefaultPage: (Int) -> Unit, onBac
 // ==================== 关于子页 ====================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutSubPage(onUpdateClick: () -> Unit, onBack: () -> Unit) {
+fun AboutSubPage(updateChannel: String, onUpdateClick: () -> Unit, onUpdateChannelChange: (String) -> Unit, onBack: () -> Unit) {
     SubPageScaffold(title = "关于", onBack = onBack) {
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("万能下载器 v2.2.3", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text("万能下载器 v2.4.0", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = onUpdateClick, modifier = Modifier.fillMaxWidth()) { Text("检查更新") }
+                // 更新通道选择 + 检查更新按钮
+                UpdateChannelSection(updateChannel = updateChannel, onUpdateClick = onUpdateClick, onUpdateChannelChange = onUpdateChannelChange)
+                Spacer(Modifier.height(12.dp))
+                Divider()
+                Spacer(Modifier.height(12.dp))
+                Text("开发者", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text("开发者: 其核 (@qihe114514)", style = MaterialTheme.typography.bodySmall)
+                Text("其核 (@qihe114514)", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(12.dp))
+                Divider()
+                Spacer(Modifier.height(12.dp))
+                Text("社交主页", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                // B站主页
+                val context = LocalContext.current
+                OutlinedButton(
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://m.bilibili.com/space/1049283248"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("B站主页")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.douyin.com/user/MS4wLjABAAAAuUtKOArTFKTBm4C6o5MwDQuGMNZ9-0CWZfUay6U9wUI"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("抖音主页")
+                }
+                Spacer(Modifier.height(12.dp))
+                Divider()
+                Spacer(Modifier.height(12.dp))
+                Text("API", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
-                Text("API: api.bugpk.com", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text("api.bugpk.com", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -274,6 +324,43 @@ fun TabOrderSubPage(onBack: () -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Text("拖拽排序功能将在后续版本实现", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+        }
+    }
+}
+
+
+// ==================== 更新通道选择组件 ====================
+@Composable
+fun UpdateChannelSection(updateChannel: String, onUpdateClick: () -> Unit, onUpdateChannelChange: (String) -> Unit) {
+    Column {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("更新通道", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                // RadioButton 选择
+                Row(Modifier.fillMaxWidth().clickable { onUpdateChannelChange("release") }, verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = updateChannel == "release", onClick = { onUpdateChannelChange("release") })
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("稳定版", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text("检测 GitHub Release 最新版本", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Row(Modifier.fillMaxWidth().clickable { onUpdateChannelChange("beta") }, verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = updateChannel == "beta", onClick = { onUpdateChannelChange("beta") })
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Beta版", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text("检测 GitHub Actions 最新构建版本", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onUpdateClick, modifier = Modifier.fillMaxWidth()) { Text("检查更新") }
+            }
         }
     }
 }
