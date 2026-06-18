@@ -54,6 +54,8 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = uiState.currentTab == index,
                                     onClick = {
+                                        showSettings = false
+                                        showHistory = false
                                         if (tab.platform != null) viewModel.selectTab(index, tab.platform)
                                         else viewModel.selectTab(index, Platform.DOUYIN)
                                     },

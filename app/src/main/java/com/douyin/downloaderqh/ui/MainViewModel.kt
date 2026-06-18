@@ -24,7 +24,9 @@ data class HistoryEntry(
     val url: String,
     val title: String,
     val type: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val avatar: String = "",
+    val author: String = ""
 )
 
 data class MainUiState(
@@ -87,7 +89,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectTab(index: Int, platform: Platform) {
-        _uiState.update { it.copy(currentTab = index, selectedPlatform = platform) }
+        _uiState.update { it.copy(currentTab = index, selectedPlatform = platform, shareUrl = "", error = null, downloadItems = emptyList(), parsedTitle = "", parsedCover = "", parsedDesc = "", downloadStatus = emptyMap(), downloadProgress = emptyMap(), downloadSpeed = emptyMap()) }
     }
 
     fun updateShareUrl(url: String) { _uiState.update { it.copy(shareUrl = url, error = null) } }
@@ -111,7 +113,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val data = response.data
                 if (data != null) {
                     val items = data.getAllVideoUrls()
-                    settingsStore.addParseHistory(HistoryEntry(url = url, title = data.title.ifEmpty { "未知视频" }, type = data.type, timestamp = System.currentTimeMillis()))
+                    settingsStore.addParseHistory(HistoryEntry(url = url, title = data.title.ifEmpty { "未知视频" }, type = data.type, timestamp = System.currentTimeMillis(), avatar = data.author?.avatar ?: "", author = data.author?.name ?: ""))
                     _uiState.update { it.copy(isLoading = false, parsedTitle = data.title, parsedCover = data.cover, parsedDesc = data.desc, downloadItems = items, error = null) }
                 } else { _uiState.update { it.copy(isLoading = false, error = "API返回了空数据") } }
             },
@@ -122,12 +124,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun parseXiaohongshu(url: String) {
         apiClient.parseXiaohongshu(url).fold(
             onSuccess = { response ->
-                val data = response.data
-                if (data != null) {
-                    val items = data.getAllDownloadItems()
-                    settingsStore.addParseHistory(HistoryEntry(url = url, title = data.title.ifEmpty { "未知笔记" }, type = "xhs", timestamp = System.currentTimeMillis()))
-                    _uiState.update { it.copy(isLoading = false, parsedTitle = data.title, parsedCover = data.cover, parsedDesc = data.desc, downloadItems = items, error = null) }
-                } else { _uiState.update { it.copy(isLoading = false, error = "API返回了空数据") } }
+                val dataList = response.data
+                if (dataList != null && dataList.isNotEmpty()) {
+                    val combined = com.douyin.downloaderqh.model.toCombined(dataList)
+                    if (combined != null) {
+                        val items = combined.getAllDownloadItems()
+                        settingsStore.addParseHistory(HistoryEntry(url = url, title = combined.title.ifEmpty { "未知笔记" }, type = "xhs", timestamp = System.currentTimeMillis(), avatar = combined.avatar, author = combined.author))
+                        _uiState.update { it.copy(isLoading = false, parsedTitle = combined.title, parsedCover = combined.cover, parsedDesc = combined.desc, downloadItems = items, error = null) }
+                    } else { _uiState.update { it.copy(isLoading = false, error = "解析失败：无法合并数据") } }
+                } else { _uiState.update { it.copy(isLoading = false, error = "API返回了空数据: ${response.msg}") } }
             },
             onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message ?: "解析失败") } }
         )
@@ -188,16 +193,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val channel = _uiState.value.updateChannel
                 val url = if (channel == "release") "https://api.github.com/repos/qihe114514/qihe-douyin/releases/latest"
                 else "https://api.github.com/repos/qihe114514/qihe-douyin/releases"
-                val request = Request.Builder().url(url).get().addHeader("Accept", "application/vnd.github.v3+json").build()
+                val request = Request.Builder().url(url).get().addHeader("Accept", "application/vnd.github.v3+json").addHeader("User-Agent", "DouyinDownloader").build()
                 val response = updateClient.newCall(request).execute()
                 val body = response.body?.string() ?: ""
-                val json = Json.parseToJsonElement(body)
-                val tag = if (channel == "release") {
-                    json.jsonObject["tag_name"]?.jsonPrimitive?.content ?: ""
-                } else {
-                    json.jsonArray.firstOrNull()?.jsonObject?.get("tag_name")?.jsonPrimitive?.content ?: ""
+                if (!response.isSuccessful) {
+                    _uiState.update { it.copy(latestVersion = "更新检查失败: HTTP ${response.code}") }
+                    return@launch
                 }
-                _uiState.update { it.copy(latestVersion = tag) }
+                val json = Json.parseToJsonElement(body)
+                val tag: String = if (channel == "release") {
+                    json.jsonObject["tag_name"]?.jsonPrimitive?.content ?: "未知"
+                } else {
+                    val arr = json.jsonArray
+                    if (arr.isEmpty()) "无发布版本"
+                    else arr.firstOrNull()?.jsonObject?.get("tag_name")?.jsonPrimitive?.content ?: "未知"
+                }
+                if (tag.isNotBlank() && tag != "未知" && tag != "无发布版本") {
+                    val currentVerName = android.content.pm.PackageInfo::class.java.getDeclaredField("versionName").let {
+                        it.isAccessible = true
+                        (appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "v2.2.3")
+                    }
+                    if (tag != currentVerName && tag != "v$currentVerName" && currentVerName != tag.removePrefix("v")) {
+                        _uiState.update { it.copy(latestVersion = "发现新版本: $tag (当前: $currentVerName)") }
+                    } else {
+                        _uiState.update { it.copy(latestVersion = "已是最新版本 ($tag)") }
+                    }
+                } else {
+                    _uiState.update { it.copy(latestVersion = "无法获取版本信息") }
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(latestVersion = "检查失败: ${e.message}") }
             }

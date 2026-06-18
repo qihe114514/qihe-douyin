@@ -87,8 +87,6 @@ fun MainScreen(platform: Platform,
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    
-
                     Text(
                         text = if (platform == Platform.DOUYIN) "抖音无水印解析" else "小红书无水印解析",
                         style = MaterialTheme.typography.headlineMedium,
@@ -169,9 +167,6 @@ fun MainScreen(platform: Platform,
                     }
 
                     if (uiState.downloadItems.isNotEmpty()) {
-                        Spacer(Modifier.height(24.dp))
-
-
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = "可下载内容 (${uiState.downloadItems.size})",

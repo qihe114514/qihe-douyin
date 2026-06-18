@@ -40,10 +40,42 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    var showTabOrder by remember { mutableStateOf(false) }
     val savePathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let { onSetSavePath(it) } }
     val bgImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let { onSetBgWallpaper(it, "image") } }
     val bgVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let { onSetBgWallpaper(it, "video") } }
 
+    if (showTabOrder) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("底栏排序", fontWeight = FontWeight.Bold) },
+                    navigationIcon = { IconButton(onClick = { showTabOrder = false }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } }
+                )
+            }
+        ) { paddingValues ->
+            Column(Modifier.fillMaxSize().padding(paddingValues).padding(20.dp)) {
+                Text("拖拽排序", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(12.dp))
+                Text("长按并拖拽标签来调整底部导航栏的顺序", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(24.dp))
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        listOf("首页", "抖音", "小红书").forEachIndexed { i, name ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.DragHandle, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.width(12.dp))
+                                Text("$name", style = MaterialTheme.typography.bodyLarge)
+                            }
+                            if (i < 2) Divider()
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("拖拽排序功能将在后续版本实现", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            }
+        }
+    } else {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -126,9 +158,11 @@ fun SettingsScreen(
                         }
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text("底栏排序 (拖拽排序)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text("底栏排序", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(4.dp))
                     Text("拖拽调整底部标签顺序", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(8.dp))
+                    FilledTonalButton(onClick = { showTabOrder = true }) { Text("进入排序") }
                 }
             }
 
@@ -148,5 +182,6 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(40.dp))
         }
+    }
     }
 }

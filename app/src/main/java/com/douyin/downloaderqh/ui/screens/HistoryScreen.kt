@@ -17,11 +17,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.size.Size
 import com.douyin.downloaderqh.ui.HistoryEntry
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -51,8 +58,7 @@ fun HistoryScreen(
                     }
                 },
                 actions = {
-                    if (historyList.isNotEmpty()) {
-                        Box {
+                    Box {
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(Icons.Default.ImportExport, "导入导出")
                             }
@@ -75,7 +81,6 @@ fun HistoryScreen(
                             IconButton(onClick = { isSelectMode = true; selectedItems = emptySet() }) {
                                 Icon(Icons.Default.Delete, "删除")
                             }
-                        }
                     }
                 }
             )
@@ -165,7 +170,6 @@ fun HistoryScreen(
                                 Text(text = entry.title.ifBlank { "未知" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(text = entry.url, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
-                        }
                     }
                 }
             }

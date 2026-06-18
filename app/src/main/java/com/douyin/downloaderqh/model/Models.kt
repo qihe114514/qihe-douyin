@@ -62,19 +62,34 @@ data class Music(
 data class XhsApiResponse(
     val code: Int,
     val msg: String,
-    val data: XhsData? = null
+    val data: List<XhsDataItem>? = null
 )
 
 @Serializable
-data class XhsData(
+data class XhsDataItem(
     val author: String = "",
     val authorID: String = "",
     val title: String = "",
     val desc: String = "",
     val avatar: String = "",
     val cover: String = "",
-    val url: String = ""
+    val url: String = "",
+    val type: String = ""
 )
+
+/** 聚合多条笔记为一个展示 */
+fun List<XhsDataItem>.toCombined(): XhsDataItem? {
+    if (isEmpty()) return null
+    val first = first()
+    val allUrls = mapNotNull { it.url.ifBlank { null } }
+    val allCovers = mapNotNull { it.cover.ifBlank { null } }
+    return first.copy(
+        url = allUrls.firstOrNull() ?: "",
+        cover = allCovers.firstOrNull() ?: "",
+        title = first.title.ifBlank { first.desc.take(30) },
+        desc = joinToString("\n") { "${it.title.ifBlank { it.desc.take(20) }}: ${it.url}" }
+    )
+}
 
 // ==================== 下载项提取 ====================
 /**
@@ -138,7 +153,7 @@ fun VideoData.getAllVideoUrls(): List<DownloadItem> {
 /**
  * 小红书数据转换为下载项列表
  */
-fun XhsData.getAllDownloadItems(): List<DownloadItem> {
+fun XhsDataItem.getAllDownloadItems(): List<DownloadItem> {
     val items = mutableListOf<DownloadItem>()
     val baseTitle = title.ifEmpty { "小红书_${author}_${System.currentTimeMillis()}" }
     url.ifBlank { null }?.let {
