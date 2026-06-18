@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../model/models.dart';
+import '../../download/download_manager.dart';
 import 'main_view_model.dart';
 import '../theme/theme.dart';
 
@@ -397,7 +398,7 @@ class _MainScreenState extends State<MainScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 4, left: 28),
                 child: Text(
-                  progress.error!,
+                  progress!.error!,
                   style: theme.textTheme.bodySmall?.copyWith(color: cs.error),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
