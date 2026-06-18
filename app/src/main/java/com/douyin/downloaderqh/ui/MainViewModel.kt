@@ -121,8 +121,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** 解小红书短链接 (xhslink.com → xiaohongshu.com/explore/...) */
+    private suspend fun resolveXhsShortLink(shortUrl: String): String {
+        try {
+            val request = Request.Builder()
+                .url(shortUrl)
+                .head()
+                .addHeader("User-Agent", "DouyinDownloader/2.0 (Android)")
+                .build()
+            val client = OkHttpClient.Builder()
+                .followRedirects(false)  // 手动处理重定向
+                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            val response = client.newCall(request).execute()
+            val location = response.header("Location") ?: ""
+            response.close()
+            if (location.isNotBlank()) {
+                // 取重定向目标中 xiaohongshu.com/explore/ 的完整 URL
+                val fullUrl = if (location.startsWith("http")) location
+                else "https://www.xiaohongshu.com$location"
+                return fullUrl
+            }
+        } catch (_: Exception) {}
+        return shortUrl // 解链失败，用原链
+    }
+
     private suspend fun parseXiaohongshu(url: String) {
-        apiClient.parseXiaohongshu(url).fold(
+        // 检测并解短链接
+        val resolvedUrl = if (url.contains("xhslink.com")) {
+            resolveXhsShortLink(url).also {
+                if (it != url) _uiState.update { s -> s.copy(shareUrl = it) }
+            }
+        } else url
+
+        apiClient.parseXiaohongshu(resolvedUrl).fold(
             onSuccess = { response ->
                 val dataList = response.data
                 if (dataList != null && dataList.isNotEmpty()) {
