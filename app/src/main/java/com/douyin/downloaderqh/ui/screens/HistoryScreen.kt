@@ -34,8 +34,8 @@ fun HistoryScreen(
 ) {
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
-    var showSubMenu by remember { mutableStateOf<String?>() }
-    var isSelectMode by remember { mutableStateOf<Boolean>(false) }
+    var showSubMenu: String? by remember { mutableStateOf(null) }
+    var isSelectMode by remember { mutableStateOf(false) }
     var selectedItems by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
     Scaffold(
