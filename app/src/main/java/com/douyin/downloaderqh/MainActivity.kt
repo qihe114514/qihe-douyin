@@ -1,0 +1,168 @@
+package com.douyin.downloaderqh
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.animation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.douyin.downloaderqh.model.Platform
+import com.douyin.downloaderqh.ui.MainViewModel
+import com.douyin.downloaderqh.ui.screens.*
+import com.douyin.downloaderqh.ui.theme.DouyinDownloaderTheme
+
+data class BottomTab(val label: String, val icon: ImageVector, val platform: Platform?)
+
+class MainActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
+        setContent {
+            DouyinDownloaderTheme {
+                val uiState by viewModel.uiState.collectAsState()
+                var showSettings by remember { mutableStateOf(false) }
+                var showHistory by remember { mutableStateOf(false) }
+
+                val tabs = listOf(
+                    BottomTab("首页", Icons.Default.Home, null),
+                    BottomTab("抖音", Icons.Default.MusicNote, Platform.DOUYIN),
+                    BottomTab("小红书", Icons.Default.Star, Platform.XIAOHONGSHU)
+                )
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        NavigationBar {
+                            tabs.forEachIndexed { index, tab ->
+                                NavigationBarItem(
+                                    selected = uiState.currentTab == index,
+                                    onClick = {
+                                        if (tab.platform != null) viewModel.selectTab(index, tab.platform)
+                                        else viewModel.selectTab(index, Platform.DOUYIN)
+                                    },
+                                    icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                    label = { Text(tab.label) }
+                                )
+                            }
+                        }
+                    }
+                ) { innerPadding ->
+                    if (showHistory) {
+                        HistoryScreen(
+                            historyList = uiState.parseHistory,
+                            onItemClick = { entry -> viewModel.updateShareUrl(entry.url); viewModel.parseVideo(); showHistory = false },
+                            onClearHistory = { viewModel.clearHistory() },
+                            onBack = { showHistory = false },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else if (showSettings) {
+                        SettingsScreen(
+                            savePath = uiState.savePath,
+                            bgWallpaperUri = uiState.bgWallpaperUri,
+                            bgWallpaperType = uiState.bgWallpaperType,
+                            bgBlurRadius = uiState.bgBlurRadius,
+                            bgOpacity = uiState.bgOpacity,
+                            videoSoundEnabled = uiState.videoSoundEnabled,
+                            defaultPage = uiState.defaultPage,
+                            onSetSavePath = { viewModel.setSavePath(it) },
+                            onSetBgWallpaper = { uri, type -> viewModel.setBgWallpaper(uri, type) },
+                            onSetBgBlurRadius = { viewModel.setBgBlurRadius(it) },
+                            onSetBgOpacity = { viewModel.setBgOpacity(it) },
+                            onSetVideoSoundEnabled = { viewModel.setVideoSoundEnabled(it) },
+                            onClearBgWallpaper = { viewModel.clearBgWallpaper() },
+                            onSetDefaultPage = { viewModel.setDefaultPage(it) },
+                            onUpdateClick = { viewModel.checkUpdate() },
+                            onBack = { showSettings = false }
+                        )
+                    } else {
+                        AnimatedContent(
+                            targetState = uiState.currentTab,
+                            modifier = Modifier.padding(innerPadding),
+                            transitionSpec = { fadeIn() togetherWith fadeOut() }
+                        ) { tabIndex ->
+                            when (tabIndex) {
+                                0 -> HomePage(
+                                    onNavigateDouyin = { viewModel.selectTab(1, Platform.DOUYIN) },
+                                    onNavigateXiaohongshu = { viewModel.selectTab(2, Platform.XIAOHONGSHU) },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                1 -> MainScreen(
+                                    platform = Platform.DOUYIN,
+                                    uiState = uiState,
+                                    onUrlChange = { viewModel.updateShareUrl(it) },
+                                    onParseClick = { viewModel.parseVideo() },
+                                    onDownloadClick = { index, item -> viewModel.downloadItem(index, item) },
+                                    onSettingsClick = { showSettings = true },
+                                    onHistoryClick = { showHistory = true },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                2 -> MainScreen(
+                                    platform = Platform.XIAOHONGSHU,
+                                    uiState = uiState,
+                                    onUrlChange = { viewModel.updateShareUrl(it) },
+                                    onParseClick = { viewModel.parseVideo() },
+                                    onDownloadClick = { index, item -> viewModel.downloadItem(index, item) },
+                                    onSettingsClick = { showSettings = true },
+                                    onHistoryClick = { showHistory = true },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HomePage(
+    onNavigateDouyin: () -> Unit,
+    onNavigateXiaohongshu: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("万能下载器", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(8.dp))
+        Text("支持抖音 & 小红书无水印解析下载", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text("by 其核", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+
+        Spacer(Modifier.height(32.dp))
+
+        Card(onClick = onNavigateDouyin, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("🎵 抖音解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("粘贴抖音分享链接，解析无水印视频/图集/实况", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Card(onClick = onNavigateXiaohongshu, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("📕 小红书解析", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text("粘贴小红书分享链接，解析无水印视频和图片", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+            }
+        }
+    }
+}
