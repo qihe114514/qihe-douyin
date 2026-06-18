@@ -87,7 +87,7 @@ fun List<XhsDataItem>.toCombined(): XhsDataItem? {
         url = allUrls.firstOrNull() ?: "",
         cover = allCovers.firstOrNull() ?: "",
         title = first.title.ifBlank { first.desc.take(30) },
-        desc = joinToString("\n") { "${it.title.ifBlank { it.desc.take(20) }}: ${it.url}" }
+        desc = this.joinToString(" | ") { "${it.title.ifBlank { it.desc.take(20) }}: ${it.url}" }
     )
 }
 

@@ -159,20 +159,65 @@ fun HistoryScreen(
                             else MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                         )
                     ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (isSelectMode) {
                                 Checkbox(checked = isSelected, onCheckedChange = {
                                     selectedItems = if (isSelected) selectedItems - index else selectedItems + index
                                 })
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(4.dp))
                             }
+                            // Avatar
+                            if (entry.avatar.isNotBlank()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(entry.avatar)
+                                        .size(Size(128))
+                                        .build(),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(20.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(20.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = entry.title.ifBlank { "未知" }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(text = entry.url, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    text = entry.title.ifBlank { "未知" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (entry.author.isNotBlank()) {
+                                    Text(
+                                        text = "@${entry.author}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1
+                                    )
+                                }
                             }
+                            // Timestamp
+                            val sdf = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+                            Text(
+                                text = try { sdf.format(Date(entry.timestamp)) } catch (_: Exception) { "" },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
-                }
             }
         }
     }
+}
 }

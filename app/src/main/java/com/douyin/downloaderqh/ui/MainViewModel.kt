@@ -126,7 +126,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             onSuccess = { response ->
                 val dataList = response.data
                 if (dataList != null && dataList.isNotEmpty()) {
-                    val combined = com.douyin.downloaderqh.model.toCombined(dataList)
+                    val combined = dataList.toCombined()
                     if (combined != null) {
                         val items = combined.getAllDownloadItems()
                         settingsStore.addParseHistory(HistoryEntry(url = url, title = combined.title.ifEmpty { "未知笔记" }, type = "xhs", timestamp = System.currentTimeMillis(), avatar = combined.avatar, author = combined.author))
