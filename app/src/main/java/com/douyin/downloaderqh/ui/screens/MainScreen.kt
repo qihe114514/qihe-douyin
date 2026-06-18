@@ -60,7 +60,6 @@ fun MainScreen(platform: Platform,
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background.copy(alpha = uiState.bgOpacity * 0.7f)
         ) {
-            Column(Modifier.statusBarsPadding()) {
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -197,7 +196,6 @@ fun MainScreen(platform: Platform,
 
                     Spacer(Modifier.height(80.dp))
                 }
-            }
             }
         }
     }

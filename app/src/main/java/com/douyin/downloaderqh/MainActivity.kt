@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().statusBarsPadding(),
                     bottomBar = {
                         NavigationBar {
                             tabs.forEachIndexed { index, tab ->
