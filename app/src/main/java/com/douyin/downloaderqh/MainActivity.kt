@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.douyin.downloaderqh.model.Platform
 import com.douyin.downloaderqh.ui.MainViewModel
+import com.douyin.downloaderqh.ui.MainUiState
 import com.douyin.downloaderqh.ui.screens.*
 import com.douyin.downloaderqh.ui.theme.DouyinDownloaderTheme
 
