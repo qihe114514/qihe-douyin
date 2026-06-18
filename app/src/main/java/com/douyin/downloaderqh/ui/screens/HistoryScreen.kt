@@ -171,7 +171,7 @@ fun HistoryScreen(
                                 AsyncImage(
                                     model = ImageRequest.Builder(context)
                                         .data(entry.avatar)
-                                        .size(Size(128))
+                                        .size(128, 128)
                                         .build(),
                                     contentDescription = null,
                                     modifier = Modifier
