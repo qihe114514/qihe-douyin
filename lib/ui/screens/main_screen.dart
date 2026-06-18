@@ -104,7 +104,7 @@ class _MainScreenState extends State<MainScreen> {
               )
             : null,
         filled: true,
-        fillColor: cs.surfaceVariant.withOpacity(0.3),
+        fillColor: cs.surfaceVariant.withValues(alpha: 0.3),
       ),
       onChanged: vm.onInputChanged,
       onSubmitted: (_) => _parse(vm),
@@ -309,7 +309,7 @@ class _MainScreenState extends State<MainScreen> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: isCompleted ? cs.tertiaryContainer.withOpacity(0.3) : null,
+      color: isCompleted ? cs.tertiaryContainer.withValues(alpha: 0.3) : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

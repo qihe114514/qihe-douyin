@@ -170,20 +170,30 @@ class MainViewModel extends ChangeNotifier {
       url: url,
       title: _parseResult!.title,
       platform: PlatformType.douyin,
-      timestamp: DateTime.now(),
+      timestamp: DateTime.now().millisecondsSinceEpoch,
     ));
   }
 
   Future<void> _parseXiaohongshu(String url) async {
     final response = await _apiClient.parseXiaohongshu(url);
-    final items = response.data?.getAllDownloadItems() ?? [];
+    final xhsItems = response.data ?? [];
+    final items = <DownloadItem>[];
+    String noteTitle = '小红书笔记';
+    String? noteAuthor;
+    String? noteAvatar;
+    for (final xhs in xhsItems) {
+      items.addAll(xhs.getAllDownloadItems());
+      if (xhs.title.isNotEmpty) noteTitle = xhs.title;
+      if (xhs.author.isNotEmpty) noteAuthor = xhs.author;
+      if (xhs.avatar.isNotEmpty) noteAvatar = xhs.avatar;
+    }
     if (items.isEmpty) throw Exception('未找到可下载的内容');
 
     _parseResult = ParseResult(
       platform: PlatformType.xiaohongshu,
-      title: response.data?.title ?? '小红书笔记',
-      authorName: response.data?.author?.nickname,
-      authorAvatar: response.data?.author?.avatar,
+      title: noteTitle,
+      authorName: noteAuthor,
+      authorAvatar: noteAvatar,
       items: items,
       originalUrl: url,
     );
@@ -195,7 +205,7 @@ class MainViewModel extends ChangeNotifier {
       url: url,
       title: _parseResult!.title,
       platform: PlatformType.xiaohongshu,
-      timestamp: DateTime.now(),
+      timestamp: DateTime.now().millisecondsSinceEpoch,
     ));
   }
 
@@ -208,11 +218,10 @@ class MainViewModel extends ChangeNotifier {
 
     // 初始化进度
     _downloadProgress[url] = DownloadProgress(
-      url: url,
-      totalBytes: 0,
-      receivedBytes: 0,
       fraction: 0.0,
       speed: '',
+      bytesDownloaded: 0,
+      totalBytes: 0,
       completed: false,
       error: null,
     );
@@ -231,11 +240,10 @@ class MainViewModel extends ChangeNotifier {
         },
         onError: (error) {
           _downloadProgress[url] = DownloadProgress(
-            url: url,
-            totalBytes: 0,
-            receivedBytes: 0,
             fraction: 0.0,
             speed: '',
+            bytesDownloaded: 0,
+            totalBytes: 0,
             completed: false,
             error: error.toString(),
           );
@@ -252,11 +260,10 @@ class MainViewModel extends ChangeNotifier {
       _downloadSubscriptions[url] = subscription;
     } catch (e) {
       _downloadProgress[url] = DownloadProgress(
-        url: url,
-        totalBytes: 0,
-        receivedBytes: 0,
         fraction: 0.0,
         speed: '',
+        bytesDownloaded: 0,
+        totalBytes: 0,
         completed: false,
         error: e.toString(),
       );

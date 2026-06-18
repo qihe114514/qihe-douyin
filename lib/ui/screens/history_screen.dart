@@ -20,7 +20,7 @@ class HistoryScreen extends StatelessWidget {
             Icon(
               Icons.history,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(
@@ -33,7 +33,7 @@ class HistoryScreen extends StatelessWidget {
             Text(
               '解析视频后记录将显示在这里',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -82,7 +82,7 @@ class HistoryScreen extends StatelessWidget {
             ),
             Text(
               entry.formattedDate,
-              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant.withOpacity(0.6)),
+              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
             ),
           ],
         ),

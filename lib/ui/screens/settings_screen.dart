@@ -137,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.page_info),
+                leading: const Icon(Icons.info_outline),
                 title: const Text('默认启动页'),
                 trailing: DropdownButton<int>(
                   value: settings.defaultPage,

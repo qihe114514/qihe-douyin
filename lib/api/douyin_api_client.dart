@@ -10,7 +10,10 @@ class DouyinApiClient {
 
   DouyinApiClient({http.Client? client}) : _client = client ?? http.Client();
 
-  /// 解析抖音视频链接
+  /// 解析抖音视频链接（兼容旧名，供ViewModel调用）
+  Future<ApiResponse> parseDouyin(String shareUrl) => parseVideo(shareUrl);
+
+  /// 解析抖音视频链接（原始方法）
   Future<ApiResponse> parseVideo(String shareUrl) async {
     try {
       final response = await _client.post(
@@ -39,7 +42,28 @@ class DouyinApiClient {
     }
   }
 
-  /// 解析小红书链接
+  /// 解析短链接（通用）
+  Future<String?> resolveShortLink(String url) async {
+    if (!url.contains('v.douyin.com') &&
+        !url.contains('xhslink.com') &&
+        !url.contains('vm.tiktok.com')) {
+      return null;
+    }
+    try {
+      final request = http.Request('HEAD', Uri.parse(url));
+      request.headers.addAll({
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36',
+      });
+      final streamedResponse = await _client.send(request);
+      final location = streamedResponse.headers['location'] ?? '';
+      streamedResponse.drain<List<int>>();
+      return location.isNotEmpty ? location : url;
+    } catch (_) {
+      return url;
+    }
+  }
+
+  /// 解析小红书链接（实例方法，供ViewModel调用）
   Future<XhsApiResponse> parseXiaohongshu(String shareUrl) async {
     try {
       final uri = Uri.parse(_xhsApi).replace(queryParameters: {'url': shareUrl});
@@ -68,7 +92,7 @@ class DouyinApiClient {
     }
   }
 
-  /// 解小红书短链接
+  /// 解小红书短链接（静态方法，保留兼容）
   static Future<String> resolveXhsShortLink(String shortUrl) async {
     try {
       final client = http.Client();
@@ -79,7 +103,7 @@ class DouyinApiClient {
         });
         final streamedResponse = await client.send(request);
         final location = streamedResponse.headers['location'] ?? '';
-        streamedResponse.discard();
+        streamedResponse.drain<List<int>>();
         if (location.isNotEmpty) {
           return location.startsWith('http')
               ? location

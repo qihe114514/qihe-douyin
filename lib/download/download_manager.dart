@@ -16,7 +16,7 @@ class DownloadManager {
       DownloadType.image => '.jpg',
     };
     final safeTitle = item.title.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_');
-    final fileName = '${safeTitle.take(80)}$extension';
+    final fileName = '${safeTitle.length > 80 ? safeTitle.substring(0, 80) : safeTitle}$extension';
 
     // 获取临时目录
     final tempDir = await getTemporaryDirectory();

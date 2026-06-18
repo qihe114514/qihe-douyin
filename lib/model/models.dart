@@ -1,7 +1,8 @@
-import 'dart:convert';
-
 // ==================== 平台枚举 ====================
-enum Platform { douyin, xiaohongshu }
+/// 使用 PlatformType 名称以兼容 UI 层的引用
+enum PlatformType { douyin, xiaohongshu }
+
+typedef Platform = PlatformType;
 
 // ==================== 通用 API 响应 ====================
 class ApiResponse {
@@ -247,7 +248,7 @@ class XhsDataItem {
   }
 }
 
-/// 聚合多条笔记为一个展示
+  /// 聚合多条笔记为一个展示
 XhsDataItem? combineXhsItems(List<XhsDataItem> items) {
   if (items.isEmpty) return null;
   final first = items.first;
@@ -256,14 +257,14 @@ XhsDataItem? combineXhsItems(List<XhsDataItem> items) {
   return XhsDataItem(
     url: allUrls.isNotEmpty ? allUrls.first : '',
     cover: allCovers.isNotEmpty ? allCovers.first : '',
-    title: first.title.isNotEmpty ? first.title : first.desc.take(30).toString(),
-    desc: items.map((e) => '${e.title.isNotEmpty ? e.title : e.desc.take(20)}: ${e.url}').join(' | '),
+    title: first.title.isNotEmpty ? first.title : first.desc.length > 30 ? first.desc.substring(0, 30) : first.desc,
+    desc: items.map((e) => '${e.title.isNotEmpty ? e.title : (e.desc.length > 20 ? e.desc.substring(0, 20) : e.desc)}: ${e.url}').join(' | '),
     author: first.author,
     avatar: first.avatar,
   );
 }
 
-// ==================== 下载项模型 ====================
+/// ==================== 下载项模型 ====================
 enum DownloadType { video, image, livePhoto }
 
 class DownloadItem {
@@ -278,6 +279,12 @@ class DownloadItem {
     required this.type,
     this.displayInfo = '',
   });
+
+  /// 兼容 UI 层代码中引用的 fileName getter
+  String get fileName => title;
+
+  /// 兼容 UI 层代码中引用的 headers getter
+  Map<String, String> get headers => {};
 }
 
 // ==================== 显示信息解析 ====================
@@ -316,10 +323,11 @@ String buildDisplayInfo(String label) {
     parts.add('${(kbps / 1000).toStringAsFixed(1)}Mbps');
   }
 
-  // 编码格式
-  if (label.contains('h265', ignoreCase: true) || label.contains('hevc', ignoreCase: true)) {
+  // 编码格式（String.contains 没有 ignoreCase 参数，用 toLowerCase）
+  final lowerLabel = label.toLowerCase();
+  if (lowerLabel.contains('h265') || lowerLabel.contains('hevc')) {
     parts.add('HEVC');
-  } else if (label.contains('h264', ignoreCase: true) || label.contains('avc', ignoreCase: true)) {
+  } else if (lowerLabel.contains('h264') || lowerLabel.contains('avc')) {
     parts.add('H.264');
   }
 
@@ -341,6 +349,7 @@ class HistoryEntry {
   final int timestamp;
   final String avatar;
   final String author;
+  final PlatformType platform;
 
   HistoryEntry({
     required this.url,
@@ -349,6 +358,7 @@ class HistoryEntry {
     required this.timestamp,
     this.avatar = '',
     this.author = '',
+    this.platform = PlatformType.douyin,
   });
 
   Map<String, dynamic> toJson() => {
@@ -358,6 +368,7 @@ class HistoryEntry {
         'timestamp': timestamp,
         'avatar': avatar,
         'author': author,
+        'platform': platform.name,
       };
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
@@ -367,6 +378,7 @@ class HistoryEntry {
         timestamp: json['timestamp'] ?? 0,
         avatar: json['avatar'] ?? '',
         author: json['author'] ?? '',
+        platform: json['platform'] == 'xiaohongshu' ? PlatformType.xiaohongshu : PlatformType.douyin,
       );
 
   String get formattedDate {

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 /// App主题配置
@@ -64,14 +66,14 @@ class AppTheme {
       ),
       cardTheme: CardTheme(
         elevation: 2,
-        color: colorScheme.surfaceVariant,
+        color: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         filled: true,
-        fillColor: colorScheme.surfaceVariant.withOpacity(0.3),
+        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colorScheme.primaryContainer,
@@ -114,7 +116,7 @@ class WallpaperBackground extends StatelessWidget {
           child: Image.file(
             File(wallpaperPath!),
             fit: BoxFit.cover,
-            color: Colors.black.withOpacity(1.0 - opacity),
+            color: Colors.black.withValues(alpha: 1.0 - opacity),
             colorBlendMode: BlendMode.darken,
           ),
         ),
