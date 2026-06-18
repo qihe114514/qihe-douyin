@@ -97,11 +97,6 @@ class DownloadManager {
   }
 
   Future<String> _saveToGallery(File file, String fileName, DownloadType type) async {
-    final mimeType = switch (type) {
-      DownloadType.video || DownloadType.livePhoto => 'video/mp4',
-      DownloadType.image => 'image/jpeg',
-    };
-
     final result = await ImageGallerySaverPlus.saveFile(
       file.path,
       name: fileName,
@@ -152,11 +147,4 @@ class DownloadProgress {
 
   bool get isError => error != null;
   bool get isDone => completed && error == null;
-}
-
-extension _StringTake on String {
-  String take(int maxLength) {
-    if (length <= maxLength) return this;
-    return substring(0, maxLength);
-  }
 }
