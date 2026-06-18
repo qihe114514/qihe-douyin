@@ -251,7 +251,7 @@ private fun UrlInputField(platform: Platform,
 }
 
 @Composable
-private fun WallpaperBackground(uiState: MainUiState) {
+internal fun WallpaperBackground(uiState: MainUiState) {
     val context = LocalContext.current
     val type = uiState.bgWallpaperType
     val blurRadius = if (uiState.bgBlurRadius > 0) (2.dp * uiState.bgBlurRadius) else 0.dp
@@ -287,7 +287,7 @@ private fun WallpaperBackground(uiState: MainUiState) {
 }
 
 @Composable
-private fun VideoBackground(
+internal fun VideoBackground(
     uri: Uri,
     blurRadiusDp: androidx.compose.ui.unit.Dp,
     soundEnabled: Boolean

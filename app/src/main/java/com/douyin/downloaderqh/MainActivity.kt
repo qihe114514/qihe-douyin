@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -24,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.douyin.downloaderqh.model.Platform
 import com.douyin.downloaderqh.ui.MainViewModel
-import com.douyin.downloaderqh.ui.screens.WallpaperBackground
 import com.douyin.downloaderqh.ui.screens.*
 import com.douyin.downloaderqh.ui.theme.DouyinDownloaderTheme
 

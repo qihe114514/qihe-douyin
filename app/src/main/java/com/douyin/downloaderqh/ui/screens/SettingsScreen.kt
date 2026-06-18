@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.douyin.downloaderqh.ui.MainUiState
 import androidx.compose.ui.platform.LocalContext
 
 enum class SettingsPage { MAIN, DOWNLOAD, WALLPAPER, PAGE_SETTINGS, ABOUT, TAB_ORDER }
@@ -54,7 +55,7 @@ fun SettingsScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        WallpaperBackground(bgWallpaperUri, bgWallpaperType, bgBlurRadius, bgOpacity, videoSoundEnabled)
+        WallpaperBackground(MainUiState(bgWallpaperUri = bgWallpaperUri, bgWallpaperType = bgWallpaperType, bgBlurRadius = bgBlurRadius, bgOpacity = bgOpacity, videoSoundEnabled = videoSoundEnabled))
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background.copy(alpha = bgOpacity * 0.7f)
