@@ -44,10 +44,12 @@ import com.douyin.downloaderqh.ui.MainUiState
 import com.douyin.downloaderqh.ui.components.GlassCard
 import com.douyin.downloaderqh.ui.components.GlassInputContainer
 import com.douyin.downloaderqh.ui.components.GlassTopAppBar
+import com.kyant.backdrop.backdrops.LayerBackdrop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    backdrop: LayerBackdrop,
     platform: Platform,
     uiState: MainUiState,
     onUrlChange: (String) -> Unit,
@@ -60,6 +62,7 @@ fun MainScreen(
     Scaffold(
         topBar = {
             GlassTopAppBar(
+                backdrop = backdrop,
                 title = if (platform == Platform.DOUYIN) "抖音视频下载" else "小红书笔记下载",
                 actions = {
                     IconButton(onClick = onHistoryClick) {

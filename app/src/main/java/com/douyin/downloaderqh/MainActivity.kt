@@ -28,8 +28,10 @@ import com.douyin.downloaderqh.ui.MainUiState
 import com.douyin.downloaderqh.ui.components.BottomTabDef
 import com.douyin.downloaderqh.ui.components.GlassBottomBar
 import com.douyin.downloaderqh.ui.components.GlassCard
+import com.douyin.downloaderqh.ui.components.rememberGlassBackdrop
 import com.douyin.downloaderqh.ui.screens.*
 import com.douyin.downloaderqh.ui.theme.DouyinDownloaderTheme
+import com.kyant.backdrop.backdrops.layerBackdrop
 
 data class BottomTab(val label: String, val icon: ImageVector, val platform: Platform?)
 
@@ -68,7 +70,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     WallpaperBackground(uiState)
 
-                    Surface(
+                    val backdrop = rememberGlassBackdrop(
+                        backgroundColor = Color.Transparent
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .layerBackdrop(backdrop)
+                    ) {
+                        Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background.copy(
                             alpha = uiState.bgOpacity * 0.7f
@@ -125,6 +136,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.fillMaxSize()
                                         )
                                         1 -> MainScreen(
+                                            backdrop = backdrop,
                                             platform = Platform.DOUYIN,
                                             uiState = uiState,
                                             onUrlChange = { viewModel.updateShareUrl(it) },
@@ -135,6 +147,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.fillMaxSize()
                                         )
                                         2 -> MainScreen(
+                                            backdrop = backdrop,
                                             platform = Platform.XIAOHONGSHU,
                                             uiState = uiState,
                                             onUrlChange = { viewModel.updateShareUrl(it) },
@@ -148,9 +161,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
 
-                    // ===== 4. Glass bottom bar overlaying on top =====
+                    // Glass bottom bar overlaying on top
                     GlassBottomBar(
+                        backdrop = backdrop,
                         tabs = tabs.map { tab ->
                             BottomTabDef(
                                 label = tab.label,

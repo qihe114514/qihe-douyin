@@ -2,6 +2,8 @@ package com.douyin.downloaderqh.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,10 +14,30 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+
+/**
+ * Creates a backdrop that captures the wallpaper + content underneath.
+ * Call this at the root level, then pass [backdrop] to glass elements.
+ */
+@Composable
+fun rememberGlassBackdrop(
+    backgroundColor: Color = MaterialTheme.colorScheme.surface
+): LayerBackdrop {
+    return rememberLayerBackdrop {
+        drawRect(backgroundColor)
+        drawContent()
+    }
+}
 
 /**
  * Glass-styled card. Uses semi-transparent surface for a frosted glass look.
- * Pass onClick for a clickable card, or omit for non-clickable.
+ * These live inside the content layer so they use visual styling, not drawBackdrop.
  */
 @Composable
 fun GlassCard(
@@ -25,6 +47,7 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
+        onClick = { onClick?.invoke() },
         modifier = modifier,
         shape = shape,
         colors = CardDefaults.cardColors(
@@ -36,26 +59,38 @@ fun GlassCard(
 
 /**
  * Glass-styled bottom navigation bar.
- * Uses semi-transparent surface with glass-like colors.
+ * Renders over the backdrop with blur + lens + vibrancy effects.
  */
 @Composable
 fun GlassBottomBar(
+    backdrop: LayerBackdrop,
     tabs: List<BottomTabDef>,
     selectedIndex: Int,
     onTabClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+    val surfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp) },
+                effects = {
+                    vibrancy()
+                    blur(6.dp.toPx())
+                    lens(24.dp.toPx(), 48.dp.toPx(), depthEffect = true)
+                },
+                onDrawSurface = {
+                    drawRect(surfaceColor)
+                }
+            )
     ) {
         NavigationBar(
             modifier = Modifier.fillMaxWidth(),
             containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = contentColor,
             tonalElevation = 0.dp
         ) {
             tabs.forEachIndexed { index, tab ->
@@ -94,43 +129,50 @@ data class BottomTabDef(
 
 /**
  * Glass-styled top app bar.
- * Uses semi-transparent surface for a frosted glass look.
+ * Uses the same backdrop for a consistent glass look.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlassTopAppBar(
+    backdrop: LayerBackdrop,
     title: String,
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
     Box(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp
-        ) {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        fontWeight = FontWeight.Bold
-                    )
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
+                effects = {
+                    vibrancy()
+                    blur(6.dp.toPx())
+                    lens(16.dp.toPx(), 32.dp.toPx(), depthEffect = true)
                 },
-                navigationIcon = { navigationIcon?.invoke() },
-                actions = actions,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                onDrawSurface = {
+                    drawRect(surfaceColor)
+                }
             )
-        }
+    ) {
+        TopAppBar(
+            title = {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            navigationIcon = { navigationIcon?.invoke() },
+            actions = actions,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
     }
 }
 

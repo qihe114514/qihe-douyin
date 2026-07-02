@@ -33,8 +33,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     buildFeatures {
@@ -86,6 +88,9 @@ dependencies {
     // DocumentFile for SAF path handling
 
     implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Backdrop — liquid glass effects
+    implementation("io.github.kyant0:backdrop:1.0.6")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
