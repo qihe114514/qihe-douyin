@@ -22,7 +22,6 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 
 /**
  * Creates a backdrop that captures the wallpaper + content underneath.
@@ -88,7 +87,7 @@ fun GlassCard(
 
 /**
  * Glass-styled bottom navigation bar.
- * Renders over the backdrop with blur + lens + vibrancy effects.
+ * Renders over the backdrop with blur + lens effects.
  *
  * @param backdrop The backdrop capturing the wallpaper + content underneath
  * @param tabs List of tab definitions (label, icon, badge count)
@@ -111,7 +110,6 @@ fun GlassBottomBar(
                 backdrop = backdrop,
                 shape = { RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp) },
                 effects = {
-                    vibrancy()
                     blur(6.dp.toPx())
                     lens(24.dp.toPx(), 48.dp.toPx(), depthEffect = true)
                 },
@@ -184,7 +182,6 @@ fun GlassTopAppBar(
                 backdrop = backdrop,
                 shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
                 effects = {
-                    vibrancy()
                     blur(6.dp.toPx())
                     lens(16.dp.toPx(), 32.dp.toPx(), depthEffect = true)
                 },
