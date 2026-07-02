@@ -18,9 +18,9 @@ jobs:
           java-version: "17"
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
-          packages: "platforms;android-37 build-tools;37.0.0"
+          packages: "platforms;android-37 cmdline-tools;latest build-tools;37.0.0"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
