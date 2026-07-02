@@ -2,8 +2,6 @@ package com.douyin.downloaderqh.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,30 +12,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
 
 /**
- * Creates a backdrop that captures the wallpaper + content underneath.
- * Call this at the root level, then pass [backdrop] to glass elements.
- */
-@Composable
-fun rememberGlassBackdrop(
-    backgroundColor: Color = MaterialTheme.colorScheme.surface
-): Backdrop {
-    return rememberLayerBackdrop {
-        drawRect(backgroundColor)
-        drawContent()
-    }
-}
-
-/**
- * Glass-styled card. Uses semi-transparent surface (not actual drawBackdrop
- * since cards live inside the content layer). Visually consistent with
- * the glass bottom bar / top bar.
+ * Glass-styled card. Uses semi-transparent surface for a frosted glass look.
  */
 @Composable
 fun GlassCard(
@@ -46,18 +23,12 @@ fun GlassCard(
     shape: Shape = RoundedCornerShape(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val containerColor = if (onClick != null) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
-    }
-
     Card(
         onClick = { onClick?.invoke() },
         modifier = modifier,
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = containerColor
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
         ),
         content = content
     )
@@ -84,38 +55,21 @@ fun GlassCard(
 
 /**
  * Glass-styled bottom navigation bar.
- * Renders over the backdrop with blur + lens effects.
- *
- * @param backdrop The backdrop capturing the wallpaper + content underneath
- * @param tabs List of tab definitions (label, icon, badge count)
- * @param selectedIndex Currently selected tab index
- * @param onTabClick Tab click callback
- * @param modifier Modifier
+ * Uses semi-transparent surface with glass-like colors.
  */
 @Composable
 fun GlassBottomBar(
-    backdrop: Backdrop,
     tabs: List<BottomTabDef>,
     selectedIndex: Int,
     onTabClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp) },
-                effects = {
-                    blur(6.dp.toPx())
-                    lens(24.dp.toPx(), 48.dp.toPx(), depthEffect = true)
-                },
-                onDrawSurface = {
-                    drawRect(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
-                    )
-                }
-            )
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         NavigationBar(
             modifier = Modifier.fillMaxWidth(),
@@ -143,9 +97,7 @@ fun GlassBottomBar(
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        unselectedIconTintColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                     )
                 )
             }
@@ -161,50 +113,43 @@ data class BottomTabDef(
 
 /**
  * Glass-styled top app bar.
- * Uses the same backdrop for a consistent glass look.
+ * Uses semi-transparent surface for a frosted glass look.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlassTopAppBar(
-    backdrop: Backdrop,
     title: String,
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
-                effects = {
-                    blur(6.dp.toPx())
-                    lens(16.dp.toPx(), 32.dp.toPx(), depthEffect = true)
-                },
-                onDrawSurface = {
-                    drawRect(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-                    )
-                }
-            )
+        modifier = modifier.fillMaxWidth()
     ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = title,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = { navigationIcon?.invoke() },
+                actions = actions,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
-            },
-            navigationIcon = { navigationIcon?.invoke() },
-            actions = actions,
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurface
             )
-        )
+        }
     }
 }
 
@@ -222,10 +167,6 @@ fun GlassInputContainer(
         modifier = modifier
             .clip(shape)
             .fillMaxWidth()
-            .then(
-                Modifier
-                    .fillMaxWidth()
-            )
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),

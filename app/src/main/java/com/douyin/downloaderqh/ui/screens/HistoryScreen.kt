@@ -164,11 +164,9 @@ fun HistoryScreen(
                                         }
                                     }
                                 )
-                                .then(
-                                    if (isSelected) Modifier
-                                else Modifier
-                                )
                                 .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             if (isSelectMode) {
                                 Checkbox(checked = isSelected, onCheckedChange = {
                                     selectedItems = if (isSelected) selectedItems - index else selectedItems + index
