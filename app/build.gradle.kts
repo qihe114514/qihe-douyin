@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.douyin.downloaderqh"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.douyin.downloaderqh"
         minSdk = 31
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 21
         versionName = "2.4.0"
     }
@@ -88,7 +88,7 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
 
     // Backdrop — liquid glass effects
-    implementation("io.github.kyant0:backdrop:2.0.0")
+    implementation("io.github.kyant0:backdrop:1.0.6")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
