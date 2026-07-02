@@ -11,6 +11,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug - Print build config
+        run: |
+          echo "=== build.gradle.kts (root) ==="
+          cat build.gradle.kts
+          echo ""
+          echo "=== app/build.gradle.kts ==="
+          head -20 app/build.gradle.kts
+          echo ""
+          echo "=== gradle.properties ==="
+          cat gradle.properties
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -22,12 +33,6 @@ jobs:
           export ANDROID_HOME=/usr/local/lib/android/sdk
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
           yes | sdkmanager --install "platforms;android-36" "build-tools;36.0.0" --sdk_root=$ANDROID_HOME 2>&1
-
-      - name: Debug - List platforms
-        run: |
-          ls -la /usr/local/lib/android/sdk/platforms/ 2>/dev/null || echo "checking alternate paths..."
-          ls -la $ANDROID_HOME/platforms/ 2>/dev/null
-          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
