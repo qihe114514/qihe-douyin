@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.douyin.downloaderqh"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.douyin.downloaderqh"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 21
         versionName = "2.4.0"
     }
