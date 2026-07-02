@@ -18,9 +18,19 @@ jobs:
           java-version: "17"
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: "platforms;android-37 cmdline-tools;latest build-tools;37.0.0"
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 37
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37" || \
+          echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --install "platforms;android-37" || \
+          echo "SDK 37 may not be available yet, trying alternative..."
+
+      - name: Check installed SDKs
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list --include_obsolete 2>&1 | grep "android-3" | head -10 || \
+          $ANDROID_HOME/tools/bin/sdkmanager --list --include_obsolete 2>&1 | grep "android-3" | head -10 || \
+          echo "sdkmanager not found in expected paths"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
