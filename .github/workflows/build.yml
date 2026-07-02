@@ -17,28 +17,27 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK 36
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" "build-tools;36.0.0" 2>&1 || \
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --install "platforms;android-36" "build-tools;36.0.0" 2>&1
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+          yes | sdkmanager --install "platforms;android-36" "build-tools;36.0.0" --sdk_root=$ANDROID_HOME 2>&1
 
-      - name: Debug - Show installed SDKs
+      - name: Debug - List platforms
         run: |
+          ls -la /usr/local/lib/android/sdk/platforms/ 2>/dev/null || echo "checking alternate paths..."
+          ls -la $ANDROID_HOME/platforms/ 2>/dev/null
           echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms dir"
-          ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "No build-tools dir"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon 2>&1
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: douyin-downloader-release
           path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: warn
