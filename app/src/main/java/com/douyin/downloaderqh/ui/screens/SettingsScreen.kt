@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.douyin.downloaderqh.ui.MainUiState
+import com.douyin.downloaderqh.ui.components.GlassCard
 import androidx.compose.ui.platform.LocalContext
 
 enum class SettingsPage { MAIN, DOWNLOAD, WALLPAPER, PAGE_SETTINGS, ABOUT, TAB_ORDER }
@@ -56,13 +57,7 @@ fun SettingsScreen(
         currentPage = SettingsPage.MAIN
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        WallpaperBackground(MainUiState(bgWallpaperUri = bgWallpaperUri, bgWallpaperType = bgWallpaperType, bgBlurRadius = bgBlurRadius, bgOpacity = bgOpacity, videoSoundEnabled = videoSoundEnabled))
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background.copy(alpha = bgOpacity * 0.7f)
-        ) {
-            when (currentPage) {
+    when (currentPage) {
         SettingsPage.MAIN -> MainSettingsPage(onBack = onBack, onNavigate = { currentPage = it })
         SettingsPage.DOWNLOAD -> DownloadSettingsSubPage(savePath = savePath, onSetSavePath = onSetSavePath, onBack = { currentPage = SettingsPage.MAIN })
         SettingsPage.WALLPAPER -> WallpaperSubPage(
@@ -81,9 +76,8 @@ fun SettingsScreen(
         SettingsPage.ABOUT -> AboutSubPage(updateChannel = updateChannel, onUpdateClick = onUpdateClick, onUpdateChannelChange = onUpdateChannelChange, onBack = { currentPage = SettingsPage.MAIN })
         SettingsPage.TAB_ORDER -> TabOrderSubPage(tabOrder = tabOrder, onSaveTabOrder = onSetTabOrder, onBack = { currentPage = SettingsPage.PAGE_SETTINGS })
     }
-            }
-        }
-    }
+
+}
 
 // ==================== 主设置页 ====================
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,8 +109,9 @@ fun MainSettingsPage(onBack: () -> Unit, onNavigate: (SettingsPage) -> Unit) {
 
 @Composable
 fun SettingsEntryCard(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    GlassCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -143,7 +138,7 @@ fun SettingsEntryCard(title: String, subtitle: String, icon: androidx.compose.ui
 fun DownloadSettingsSubPage(savePath: String, onSetSavePath: (Uri) -> Unit, onBack: () -> Unit) {
     val savePathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let { onSetSavePath(it) } }
     SubPageScaffold(title = "下载设置", onBack = onBack) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
@@ -170,7 +165,7 @@ fun WallpaperSubPage(
     val bgImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let { onSetBgWallpaper(it, "image") } }
     val bgVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let { onSetBgWallpaper(it, "video") } }
     SubPageScaffold(title = "背景壁纸", onBack = onBack) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilledTonalButton(onClick = { bgImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.weight(1f)) { Text("选择图片") }
@@ -215,7 +210,7 @@ fun WallpaperSubPage(
 @Composable
 fun PageSettingsSubPage(defaultPage: Int, onSetDefaultPage: (Int) -> Unit, onBack: () -> Unit, onTabOrder: () -> Unit) {
     SubPageScaffold(title = "页面设置", onBack = onBack) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("默认打开页面", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
@@ -229,7 +224,7 @@ fun PageSettingsSubPage(defaultPage: Int, onSetDefaultPage: (Int) -> Unit, onBac
             }
         }
         Spacer(Modifier.height(16.dp))
-        Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onTabOrder), shape = RoundedCornerShape(12.dp)) {
+        GlassCard(onClick = onTabOrder, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Row(
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -250,7 +245,7 @@ fun PageSettingsSubPage(defaultPage: Int, onSetDefaultPage: (Int) -> Unit, onBac
 @Composable
 fun AboutSubPage(updateChannel: String, onUpdateClick: () -> Unit, onUpdateChannelChange: (String) -> Unit, onBack: () -> Unit) {
     SubPageScaffold(title = "关于", onBack = onBack) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("万能下载器 v2.4.0", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
@@ -317,7 +312,7 @@ fun TabOrderSubPage(tabOrder: List<Int>, onSaveTabOrder: (List<Int>) -> Unit, on
             Spacer(Modifier.height(8.dp))
             Text("点击上下箭头移动标签位置", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(16.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+            GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     currentOrder.forEachIndexed { i, tabIdx ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -375,11 +370,7 @@ fun TabOrderSubPage(tabOrder: List<Int>, onSaveTabOrder: (List<Int>) -> Unit, on
 @Composable
 fun UpdateChannelSection(updateChannel: String, onUpdateClick: () -> Unit, onUpdateChannelChange: (String) -> Unit) {
     Column {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        ) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("更新通道", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))

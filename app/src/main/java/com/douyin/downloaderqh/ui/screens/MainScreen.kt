@@ -41,10 +41,16 @@ import coil3.size.Size
 import com.douyin.downloaderqh.model.*
 import com.douyin.downloaderqh.ui.DownloadStatus
 import com.douyin.downloaderqh.ui.MainUiState
+import com.douyin.downloaderqh.ui.components.GlassCard
+import com.douyin.downloaderqh.ui.components.GlassInputContainer
+import com.douyin.downloaderqh.ui.components.GlassTopAppBar
+import com.kyant.backdrop.Backdrop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(platform: Platform,
+fun MainScreen(
+    backdrop: Backdrop,
+    platform: Platform,
     uiState: MainUiState,
     onUrlChange: (String) -> Unit,
     onParseClick: () -> Unit,
@@ -53,37 +59,29 @@ fun MainScreen(platform: Platform,
     onHistoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        WallpaperBackground(uiState)
-
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background.copy(alpha = uiState.bgOpacity * 0.7f)
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(if (platform == Platform.DOUYIN) "抖音视频下载" else "小红书笔记下载", fontWeight = FontWeight.Bold) },
-                        actions = {
-                            IconButton(onClick = onHistoryClick) {
-                                Icon(Icons.Default.History, "历史记录")
-                            }
-                            IconButton(onClick = onSettingsClick) {
-                                Icon(Icons.Default.Settings, "设置")
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-                        )
-                    )
-                },
-                containerColor = Color.Transparent
-            ) { paddingValues ->
-                Column(
+    Scaffold(
+        topBar = {
+            GlassTopAppBar(
+                backdrop = backdrop,
+                title = if (platform == Platform.DOUYIN) "抖音视频下载" else "小红书笔记下载",
+                actions = {
+                    IconButton(onClick = onHistoryClick) {
+                        Icon(Icons.Default.History, "历史记录")
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, "设置")
+                    }
+                }
+            )
+        },
+        containerColor = Color.Transparent
+    ) { paddingValues ->
+        Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
                         .padding(horizontal = 24.dp)
+                        .padding(bottom = 80.dp)
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -103,11 +101,13 @@ fun MainScreen(platform: Platform,
 
                     Spacer(Modifier.height(32.dp))
 
-                    UrlInputField(platform, 
-                        url = uiState.shareUrl,
-                        onUrlChange = onUrlChange,
-                        onParseClick = onParseClick
-                    )
+                    GlassInputContainer {
+                        UrlInputField(platform, 
+                            url = uiState.shareUrl,
+                            onUrlChange = onUrlChange,
+                            onParseClick = onParseClick
+                        )
+                    }
 
                     Spacer(Modifier.height(16.dp))
 
@@ -141,28 +141,20 @@ fun MainScreen(platform: Platform,
                         exit = fadeOut()
                     ) {
                         uiState.error?.let { errMsg ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                                ),
-                                shape = RoundedCornerShape(12.dp)
+                            GlassCard(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Error, "错误", tint = MaterialTheme.colorScheme.onErrorContainer)
-                                    Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        text = errMsg,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
+                                Icon(Icons.Default.Error, "错误", tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = errMsg,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
+                        }
                         }
                     }
 
@@ -197,7 +189,6 @@ fun MainScreen(platform: Platform,
                     Spacer(Modifier.height(80.dp))
                 }
             }
-        }
     }
 }
 
@@ -331,12 +322,9 @@ internal fun VideoBackground(
 
 @Composable
 private fun VideoInfoCard(data: VideoData) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
-        )
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -399,12 +387,9 @@ private fun DownloadItemCard(
     progress: Float,
     onDownload: () -> Unit
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-        )
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
