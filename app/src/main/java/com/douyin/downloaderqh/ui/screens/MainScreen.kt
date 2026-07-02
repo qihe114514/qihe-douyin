@@ -186,7 +186,6 @@ fun MainScreen(
                     Spacer(Modifier.height(80.dp))
                 }
             }
-    }
 }
 
 @Composable

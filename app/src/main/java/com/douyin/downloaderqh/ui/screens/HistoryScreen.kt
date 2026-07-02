@@ -141,29 +141,36 @@ fun HistoryScreen(
             ) {
                 itemsIndexed(historyList) { index, entry ->
                     val isSelected = selectedItems.contains(index)
-                    GlassCard(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    if (isSelectMode) {
+                                        selectedItems = if (isSelected) selectedItems - index else selectedItems + index
+                                    } else {
+                                        onItemClick(entry)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (!isSelectMode) {
+                                        isSelectMode = true
+                                        selectedItems = setOf(index)
+                                    }
+                                }
+                            ),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+                        )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = {
-                                        if (isSelectMode) {
-                                            selectedItems = if (isSelected) selectedItems - index else selectedItems + index
-                                        } else {
-                                            onItemClick(entry)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        if (!isSelectMode) {
-                                            isSelectMode = true
-                                            selectedItems = setOf(index)
-                                        }
-                                    }
-                                )
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

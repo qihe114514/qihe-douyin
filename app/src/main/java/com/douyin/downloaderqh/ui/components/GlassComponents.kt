@@ -15,30 +15,11 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Glass-styled card. Uses semi-transparent surface for a frosted glass look.
+ * Pass onClick for a clickable card, or omit for non-clickable.
  */
 @Composable
 fun GlassCard(
     onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp),
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        onClick = { onClick?.invoke() },
-        modifier = modifier,
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
-        ),
-        content = content
-    )
-}
-
-/**
- * Non-clickable glass card variant.
- */
-@Composable
-fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
     content: @Composable ColumnScope.() -> Unit
